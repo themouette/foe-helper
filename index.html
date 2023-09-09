@@ -65,6 +65,19 @@
       .video {
         margin-top: 100px;
       }
+      .flex {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+      }
+      .usage {
+        flex: 1 1 auto;
+      }
+      .usage img {
+        max-height: 250px;
+        max-width: 250px;
+      }
     </style>
   </head>
   <body>
@@ -94,6 +107,28 @@
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowfullscreen
       ></iframe>
+    </div>
+    <h2 class="center" style="margin-top: 40px; text-align: left">
+      Utilisation
+    </h2>
+    <div class="center flex">
+      <div class="usage">
+        <h3>Ouvrir "Guild Members Overview"</h3>
+        <img src="./images/guild-member-overview.png" />
+      </div>
+      <div class="usage">
+        <h3>Ouvrir les détails</h3>
+        <img src="./images/expand-all.png" />
+      </div>
+      <div class="usage">
+        <h3>Ou ouvrir "Treasury Goods"</h3>
+        <img src="./images/treasury goods.png" />
+      </div>
+    </div>
+    <div class="center flex">
+      <div class="usage">
+        <h3>Cliquer sur le marque page</h3>
+      </div>
     </div>
   </body>
 </html>
