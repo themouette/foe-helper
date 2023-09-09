@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FOE helper pour Groland</title>
+  </head>
+  <body>
+    <p>Glissez le lien suivant dans votre barre de marques page</p>
+    <a
+      href="javascript:(function () {
+      if (window.getContentFromSelectedTab) { window.getContentFromSelectedTab(); }
+      else {
+        const script = document.createElement('script');
+        const nounce = `${Math.random()}`.split('.')[1];
+        script.src = `https://themouette.github.io/foe-helper/script.js?${nounce}`;
+        document.head.appendChild(script);
+      } })();"
+      >FOE-Groland</a
+    >
+  </body>
+</html>
