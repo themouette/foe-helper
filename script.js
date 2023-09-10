@@ -13,7 +13,7 @@
       .fill()
       .map((_, index) => index * chunk_size)
       .map((begin) => array.slice(begin, begin + chunk_size));
-  const toNumber = (x) => Number(x.replaceAll(",", ""));
+  const toNumber = (x) => Number(x.replaceAll(/\D/g, ""));
   const displayMessage = (message) => {
     const div = document.createElement("div");
     Object.entries({
