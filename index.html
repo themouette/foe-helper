@@ -78,11 +78,36 @@
         max-height: 250px;
         max-width: 250px;
       }
+      .show-me {
+        position: relative;
+      }
+      .show-me video {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+      .show-me:hover video {
+        display: block;
+        z-index: 10;
+      }
     </style>
   </head>
   <body>
     <div class="center">
-      <p>Glissez le lien suivant dans votre barre de marques page</p>
+      <p>
+        Glissez le lien suivant dans votre barre de marques page.
+        <a href="#" class="show-me">
+          Montrez moi
+          <video
+            src="./images/demo-drag-n-drop-1.mov"
+            height=""
+            width=""
+            autoplay
+            loop
+          ></video>
+        </a>
+      </p>
 
       <a
         class="button-3"
