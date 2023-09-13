@@ -99,26 +99,41 @@
         content += `\nTotal: ${total}`;
         copyContent(content);
       };
-      const getResourceState = () => {
+      /**
+       * compute a state object with all resources, grouped by age:
+       *
+       */
+      const computeResourceState = () => {
+        const resources = [
+          /* { name: 'futur', resources: [{ name: 'nanoparticule', count: 123 }] } */
+        ];
         const $resourceGroupByAge = $$(
           "#TreasuryGoodsTable td:nth-child(3).detail"
         );
-        const content = $resourceGroupByAge
-          .map(($block, index) => {
-            if (index < INDEX_FUTUR_ERA) return;
-            const title = ages[index];
-            const resources = $$("tr", $block)
-              .map(
-                ($row) =>
-                  `- ${$row.children[1].textContent}: ${toNumber(
-                    $row.children[2].textContent
-                  )}`
-              )
-              .join("\n");
+        $resourceGroupByAge.forEach(($block, index) => {
+          if (index < INDEX_FUTUR_ERA) return;
+          const age = {
+            name: ages[index],
+            resources: $$("tr", $block).map(($row) => ({
+              name: $row.children[1].textContent,
+              count: toNumber($row.children[2].textContent),
+            })),
+          };
 
-            return `${title}\n${resources}`;
-          })
-          .filter(Boolean)
+          resources.push(age);
+        });
+
+        return resources;
+      };
+      const getResourceState = () => {
+        const resources = computeResourceState();
+        const content = resources
+          .map(
+            ({ name: age, resources: r }) =>
+              `${age}:\n${r
+                .map(({ name, count }) => `${name}: ${count}`)
+                .join(" - ")}`
+          )
           .join("\n");
         copyContent(content);
       };
@@ -127,30 +142,20 @@
         const EXPECTED_LEVEL = 60_000;
         const ALERT_LEVEL = 50_000;
         const CRITICAL_LEVEL = 25_000;
-        const $resourceGroupByAge = $$(
-          "#TreasuryGoodsTable td:nth-child(3).detail"
-        );
-        const content = $resourceGroupByAge
-          .map(($block, index) => {
-            if (index < INDEX_FUTUR_ERA) return;
-            const title = ages[index];
-            const resources = $$("tr", $block)
-              .map(($row) => {
-                const resourceName = $row.children[1].textContent;
-                const count = toNumber($row.children[2].textContent);
-                if (count > ALERT_LEVEL) return false;
-                if (count > CRITICAL_LEVEL)
-                  return `⚠️  ${resourceName} (${count}) manque ${
-                    EXPECTED_LEVEL - count
-                  }`;
-                return `🚑 ${resourceName} (${count}) manque ${
-                  EXPECTED_LEVEL - count
-                } ‼️ ‼️ `;
-              })
-              .filter(Boolean)
+        const resources = computeResourceState();
+        const content = resources
+          .map(({ name: age, resources: r }) => {
+            const callForAge = r
+              .filter(({ count }) => count <= ALERT_LEVEL)
+              .map(({ name, count }) =>
+                count > CRITICAL_LEVEL
+                  ? ` - ⚠️  ${name} (${count}) manque ${EXPECTED_LEVEL - count}`
+                  : ` - 🚑 ${name} (${count}) manque ${
+                      EXPECTED_LEVEL - count
+                    } ‼️ ‼️ `
+              )
               .join("\n");
-
-            return resources ? `${title}\n${resources}` : false;
+            return callForAge.length ? `${age}:\n${callForAge}` : undefined;
           })
           .filter(Boolean)
           .join("\n");
