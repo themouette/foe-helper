@@ -137,6 +137,18 @@
           .join("\n");
         copyContent(content);
       };
+      const getResourceStateCsv = () => {
+        const resources = computeResourceState();
+        let content = resources
+          .map(({ resources: r }) => r.map(({ name }) => `"${name}"`).join(";"))
+          .join(";");
+
+        content += "\n";
+        content += resources
+          .map(({ resources: r }) => r.map(({ count }) => `${count}`).join(";"))
+          .join(";");
+        copyContent(content);
+      };
 
       const getCallForDonations = () => {
         const EXPECTED_LEVEL = 60_000;
@@ -174,8 +186,11 @@
         </div>
         <div>
           <button id="production">Production par ressource</button>
-          <button id="resource-state">État de la trésorerie</button>
           <button id="donations">Appel aux dons!</button>
+        </div>
+        <div>
+          <button id="resource-state">État de la trésorerie</button>
+          <button id="resource-state-csv">État de la trésorerie (CSV)</button>
         </div>
       `;
         const fragment = document.createDocumentFragment();
@@ -191,6 +206,13 @@
           .querySelector("#resource-state")
           .addEventListener("click", (e) => {
             getResourceState();
+            e.preventDefault();
+            closePopup();
+          });
+        fragment
+          .querySelector("#resource-state-csv")
+          .addEventListener("click", (e) => {
+            getResourceStateCsv();
             e.preventDefault();
             closePopup();
           });
