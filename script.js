@@ -151,9 +151,9 @@
       };
 
       const getCallForDonations = () => {
-        const EXPECTED_LEVEL = 60_000;
-        const ALERT_LEVEL = 50_000;
-        const CRITICAL_LEVEL = 25_000;
+        const EXPECTED_LEVEL = 80_000;
+        const ALERT_LEVEL = 70_000;
+        const CRITICAL_LEVEL = 50_000;
         const resources = computeResourceState();
         const content = resources
           .map(({ name: age, resources: r }) => {
