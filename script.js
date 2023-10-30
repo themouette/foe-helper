@@ -119,7 +119,7 @@
     try {
       return mapEraToShortName[mapResourceToEra[resourceName]];
     } catch (error) {
-      console.error(error);
+      console.log(error);
       alert(
         `Oups, le script de themouette a planté pour resource ${resourceName}...`
       );
@@ -137,7 +137,12 @@
   const displayMessage = (message, closeDelay = 3000) => {
     const div = document.createElement("div");
     const closePopup = () => {
-      div.parentElement.removeChild(div);
+      try {
+        if (!div || !div.parentElement) return;
+        div.parentElement.removeChild(div);
+      } catch (error) {
+        console.log(error);
+      }
     };
     Object.entries({
       position: "absolute",
@@ -488,7 +493,7 @@
               e.preventDefault();
               closePopup();
             } catch (error) {
-              console.error(error);
+              console.log(error);
             }
           });
 
