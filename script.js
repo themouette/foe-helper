@@ -76,7 +76,7 @@
 
     if ($$("#TreasuryGoodsTable").length) {
       // Guild members overview: Treasury Goods
-      // There is 3 king of information we want to extract:
+      // There is 3 kind of information we want to extract:
       // - Daily goods production, per resource
       // - Current state of invetory
       // - Call for donation
@@ -85,7 +85,8 @@
         let total = 0;
         content += "Production quotidienne par âge\n";
         content += array_chunks(
-          $$(".goods-image").map((cell) => {
+          // First column of "goods"
+          $$("td.detail:nth-child(2) .goods-image").map((cell) => {
             const nbResource = toNumber(
               cell.parentNode.children[2].textContent
             );
