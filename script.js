@@ -413,29 +413,50 @@
           }
         });
 
+        const convertAllBuildingsToEraString = (buildingList) => {
+          const statsByEra = new Map();
+          // Group by era
+          buildingList.forEach((stat) => {
+            statsByEra.set(stat.era, [
+              ...(statsByEra.get(stat.era) || []),
+              stat,
+            ]);
+          });
+          const production = Array.from(statsByEra.entries()).map(
+            ([era, buildings]) =>
+              `${era} (${buildings.reduce(
+                (sum, { goodsCount }) => goodsCount + sum,
+                0
+              )})`
+          );
+          return production.join(" ");
+        };
+
         content +=
           "Production par membre et par age (de chaque resource, ie: x5)\n";
+
+        // Combine all production per user
         content += Object.keys(statsByMember)
           .map((memberName) => {
             const stats = statsByMember[memberName];
-            const statsByEra = new Map();
-            // Group by era
-            stats.detail.forEach((stat) => {
-              statsByEra.set(stat.era, [
-                ...(statsByEra.get(stat.era) || []),
-                stat,
-              ]);
-            });
-            const production = Array.from(statsByEra.entries()).map(
-              ([era, buildings]) =>
-                `${era} (${buildings.reduce(
-                  (sum, { goodsCount }) => goodsCount + sum,
-                  0
-                )})`
-            );
-            return `${memberName}: ${stats.total} - ${production.join(" ")}`;
+            return `${memberName}: ${
+              stats.total
+            } - ${convertAllBuildingsToEraString(stats.detail)}`;
           })
           .join("\n");
+
+        // Combine total production
+        const total = Object.keys(statsByMember).reduce(
+          (sum, memberName) => sum + statsByMember[memberName].total,
+          0
+        );
+        const allBuildings = Object.keys(statsByMember).reduce(
+          (all, memberName) => [...all, ...statsByMember[memberName].detail],
+          []
+        );
+        content += `\nTotal: ${total} - ${convertAllBuildingsToEraString(
+          allBuildings
+        )}`;
         copyContent(content);
       }
 
