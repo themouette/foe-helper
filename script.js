@@ -29,7 +29,102 @@
     "Ère Spatiale - Lune de Jupiter",
     "Ère Spatiale - Titan",
   ];
+  const mapResourceToEra = {
+    "Donnée génétique": "Ère Postmoderne",
+    "Filtres industriels": "Ère Postmoderne",
+    "Ressources renouvelables": "Ère Postmoderne",
+    "Semi-conducteurs": "Ère Postmoderne",
+    Acier: "Ère Postmoderne",
+    "Donnée bionique": "Ère Contemporaine",
+    "Électro-aimants": "Ère Contemporaine",
+    Gaz: "Ère Contemporaine",
+    Plastique: "Ère Contemporaine",
+    Robots: "Ère Contemporaine",
+    "Recherche en nutrition": "Ère de Demain",
+    "Liant papier": "Ère de Demain",
+    Conservateurs: "Ère de Demain",
+    "Matériaux intelligents": "Ère de Demain",
+    "Béton translucide": "Ère de Demain",
+    Algue: "Ère du Futur",
+    "Donnée biogéochimique": "Ère du Futur",
+    Nanoparticules: "Ère du Futur",
+    "Eau purifiée": "Ère du Futur",
+    Supraconducteurs: "Ère du Futur",
+    "Donnée d'I.A.": "Futur Arctique",
+    Bioplastiques: "Futur Arctique",
+    Nanocâble: "Futur Arctique",
+    "Piles en papier": "Futur Arctique",
+    "Gaz transester": "Futur Arctique",
+    "Écailles artificielles": "Futur Océanique",
+    "Substance bioluminescente": "Futur Océanique",
+    Coraux: "Futur Océanique",
+    Perles: "Futur Océanique",
+    Plancton: "Futur Océanique",
+    "Crypto-monnaie": "Futur Virtuel",
+    "Cristaux de données": "Futur Virtuel",
+    "Riz doré": "Futur Virtuel",
+    Nanorobots: "Futur Virtuel",
+    "Soie de thé": "Futur Virtuel",
+    "Cultures biotechnologiques": "Ère Spatiale - Mars",
+    "Réacteurs de fusion": "Ère Spatiale - Mars",
+    "Huiles de graissage": "Ère Spatiale - Mars",
+    "Microbes martiens": "Ère Spatiale - Mars",
+    Superalliages: "Ère Spatiale - Mars",
+    Brome: "Ère Spatiale - Ceinture d'Astéroïdes",
+    "Fluide composé": "Ère Spatiale - Ceinture d'Astéroïdes",
+    Nickel: "Ère Spatiale - Ceinture d'Astéroïdes",
+    "Cristal de platine": "Ère Spatiale - Ceinture d'Astéroïdes",
+    "Matériau transformé": "Ère Spatiale - Ceinture d'Astéroïdes",
+    "Algue lumineuse": "Ère Spatiale - Vénus",
+    "En-cas d'herbe": "Ère Spatiale - Vénus",
+    "Suppléments de micropousse": "Ère Spatiale - Vénus",
+    "Protéines de soja": "Ère Spatiale - Vénus",
+    "Cristaux de sucre": "Ère Spatiale - Vénus",
+    "Données ADN avancées": "Ère Spatiale - Lune de Jupiter",
+    "Créatures biologiques": "Ère Spatiale - Lune de Jupiter",
+    "Porifère avancé": "Ère Spatiale - Lune de Jupiter",
+    "Algues rouges": "Ère Spatiale - Lune de Jupiter",
+    "Dossiers topologiques": "Ère Spatiale - Lune de Jupiter",
+    "Capsule de matière comprimée": "Ère Spatiale - Titan",
+    "Donnée expérimentale": "Ère Spatiale - Titan",
+    "Molécule isolée": "Ère Spatiale - Titan",
+    "Liant liquide": "Ère Spatiale - Titan",
+    "Hydrocarbure upcyclé": "Ère Spatiale - Titan",
+  };
+  const mapEraToShortName = {
+    "Âge de Fer": "AdF",
+    "Haut Moyen Âge": "HMA",
+    "Moyen Âge Classique": "MA Classique",
+    Renaissance: "Renaissance",
+    "Âge Colonial": "Colo",
+    "Âge Industriel": "Indus",
+    "Ère Progressiste": "Progressiste",
+    "Ère Moderne": "Moderne",
+    "Ère Postmoderne": "Postmoderne",
+    "Ère Contemporaine": "Contemporaine",
+    "Ère de Demain": "Demain",
+    "Ère du Futur": "Futur",
+    "Futur Arctique": "FA",
+    "Futur Océanique": "FO",
+    "Futur Virtuel": "FV",
+    "Ère Spatiale - Mars": "Mars",
+    "Ère Spatiale - Ceinture d'Astéroïdes": "Astéroïdes",
+    "Ère Spatiale - Vénus": "Vénus",
+    "Ère Spatiale - Lune de Jupiter": "Jupiter",
+    "Ère Spatiale - Titan": "Titan",
+  };
   const INDEX_FUTUR_ERA = 11;
+
+  const getEraNameForResource = (resourceName) => {
+    try {
+      return mapEraToShortName[mapResourceToEra[resourceName]];
+    } catch (error) {
+      console.error(error);
+      alert(
+        `Oups, le script de themouette a planté pour resource ${resourceName}...`
+      );
+    }
+  };
 
   const $$ = (selector, $node = document) =>
     Array.from($node.querySelectorAll(selector));
@@ -235,24 +330,149 @@
         displayMessage("Ouvrez le détail des membres que vous voulez voir");
         return;
       }
-      content += "Resources quotidiennes par membre\n";
-      // Only copy the total for now
-      $$("tbody.gms-group > tr").map((tr) => {
-        if (tr.classList.contains("open")) {
-          // this is a member name
-          content += tr.querySelector("td[data-text]").dataset.text;
-        } else if (tr.querySelector(".guildgoods")) {
-          // this is the detail
-          const nbResources = toNumber(
-            tr.querySelector(".guildgoods tr:last-child td:last-child")
-              .textContent
-          );
-          total += nbResources;
-          content += `: ${nbResources}\n`;
-        }
-      });
-      content += `Total: ${total}`;
-      copyContent(content);
+      /**
+       * Generate a string with the total number of resources produced by each
+       * guild member.
+       */
+      function getResourceProductionPerMember() {
+        content += "Resources quotidiennes par membre\n";
+        // Only copy the total for now
+        $$("tbody.gms-group > tr").map((tr) => {
+          if (tr.classList.contains("open")) {
+            // this is a member name
+            content += tr.querySelector("td[data-text]").dataset.text;
+          } else if (tr.querySelector(".guildgoods")) {
+            // this is the detail
+            const nbResources = toNumber(
+              tr.querySelector(".guildgoods tr:last-child td:last-child")
+                .textContent
+            );
+            total += nbResources;
+            content += `: ${nbResources}\n`;
+          }
+        });
+        content += `Total: ${total}`;
+        copyContent(content);
+      }
+
+      /**
+       * From guild members table get the total of resources produced daily,
+       * grouped by age and member.
+       */
+      function getResourceProductionPerAgeAndMember() {
+        // A map of member and related goods production
+        // Each item is an array, each array item being a line in the table:
+        // {
+        //   "themouette": {
+        //     total: 2510,
+        //     detail: [
+        //       {
+        //         goodsCount: 48 /* number of each resource produced by this line */,
+        //         era: 'FA', /* Shortname for this era */
+        //         building: 'Arche (80)',
+        //         buildingCount: '1'
+        //         }
+        //     ]
+        //   }
+        // }
+        const statsByMember = {};
+        let currentMemberName;
+        // Read table line by line
+        $$("tbody.gms-group > tr").map((tr) => {
+          if (tr.classList.contains("open")) {
+            // this is a member name
+            currentMemberName = tr.querySelector("td[data-text]").dataset.text;
+          } else if (tr.querySelector(".guildgoods")) {
+            // this is the detail
+            statsByMember[currentMemberName] = {};
+            statsByMember[currentMemberName].total = toNumber(
+              tr.querySelector(".guildgoods tr:last-child td:last-child")
+                .textContent
+            );
+            statsByMember[currentMemberName].detail = $$(
+              // Only the first `.guildgoods` contains resources.
+              // exclude last line as it is the total
+              ".guildgoods:first-child tbody tr:not(:last-child)",
+              tr
+            ).map((guildGoodRow) => {
+              const description =
+                guildGoodRow.querySelector("td:first-child").textContent;
+              const goodsCount =
+                guildGoodRow.querySelector(".goods-count").textContent;
+              // Title is cont x good name, eg: `15 x Brome`
+              const firstGood =
+                guildGoodRow.querySelector(".goods-sprite-50").title;
+
+              return {
+                goodsCount: toNumber(goodsCount.replace(/\D/g, "")),
+                era: getEraNameForResource(firstGood.split(" x ")[1]), // what is after ` x `
+                building: description.split(" x ")[1],
+                buildingCount: toNumber(description.split(" x ")[0]),
+              };
+            });
+          }
+        });
+
+        content +=
+          "Production par membre et par age (de chaque resource, ie: x5)\n";
+        content += Object.keys(statsByMember)
+          .map((memberName) => {
+            const stats = statsByMember[memberName];
+            const statsByEra = new Map();
+            // Group by era
+            stats.detail.forEach((stat) => {
+              statsByEra.set(stat.era, [
+                ...(statsByEra.get(stat.era) || []),
+                stat,
+              ]);
+            });
+            const production = Array.from(statsByEra.entries()).map(
+              ([era, buildings]) =>
+                `${era} (${buildings.reduce(
+                  (sum, { goodsCount }) => goodsCount + sum,
+                  0
+                )})`
+            );
+            return `${memberName}: ${stats.total} - ${production.join(" ")}`;
+          })
+          .join("\n");
+        copyContent(content);
+      }
+
+      displayMessage((closePopup) => {
+        const message = `
+        <div>
+          Il y a plusieurs types d'informations à récupérer sur cette page.<br>
+          Que voulez vous faire?
+        </div>
+        <div>
+          <button id="per-member">Production totale par membre</button>
+          <button id="per-age-member">Production par membre et par age</button>
+        </div>
+      `;
+        const fragment = document.createDocumentFragment();
+        const div = document.createElement("div");
+        div.innerHTML = message;
+        fragment.appendChild(div);
+        fragment.querySelector("#per-member").addEventListener("click", (e) => {
+          getResourceProductionPerMember();
+          e.preventDefault();
+          closePopup();
+        });
+        fragment
+          .querySelector("#per-age-member")
+          .addEventListener("click", (e) => {
+            try {
+              getResourceProductionPerAgeAndMember();
+              e.preventDefault();
+              closePopup();
+            } catch (error) {
+              console.error(error);
+            }
+          });
+
+        return fragment;
+      }, 10_000);
     } else {
       displayMessage('Vous devez ouvrir le tableau "Guild Member Overview"');
       return;
