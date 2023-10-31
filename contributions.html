@@ -88,7 +88,9 @@
               // {
               //   donnation: { algues: 12, ... },
               //   monuments: { algues: 12, ... },
-              //   buildings: { algues: 12, ... },
+              //   cdg: { algues: 12, ... },
+              //   gcg: {},
+              //   eg: {},
               //   unknownEvents: [],
               //   total_contributions: 123,
               //   total_spent: 110,
@@ -97,7 +99,9 @@
               const stats = {
                 monuments: {},
                 donnation: {},
-                buildings: {},
+                cdg: {},
+                eg: {},
+                gcg: {},
                 unknownEvents: [],
                 total_contributions: 0,
                 total_spent: 0,
@@ -132,8 +136,13 @@
                     stats.donnation[Good] =
                       (stats.donnation[Good] || 0) + toNumber(Amount);
                   } else if (Message.startsWith("Champs de bataille")) {
-                    stats.buildings[Good] =
-                      (stats.buildings[Good] || 0) + toNumber(Amount);
+                    stats.cdg[Good] = (stats.cdg[Good] || 0) + toNumber(Amount);
+                  } else if (
+                    Message.startsWith("Déploiement de l'armée de siège")
+                  ) {
+                    stats.gcg[Good] = (stats.gcg[Good] || 0) + toNumber(Amount);
+                  } else if (Message.startsWith("Expédition de guilde")) {
+                    stats.eg[Good] = (stats.eg[Good] || 0) + toNumber(Amount);
                   } else {
                     stats.unknownEvents = [...stats.unknownEvents, Message];
                   }
@@ -152,14 +161,20 @@ ${Object.keys(byMember)
   )
   .join("")}
 
-Batiments Cdg:
-- ${formatGoods(stats.buildings).join("\n- ")}
+Batiments Champs de bataille:
+- ${formatGoods(stats.cdg).join("\n- ")}
+
+Expédition de guilde:
+- ${formatGoods(stats.eg).join("\n- ")}
+
+Continent Des Guildes:
+- ${formatGoods(stats.gcg).join("\n- ")}
 
 Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
 
 ${
   stats.unknownEvents.length
-    ? "Evenemnts inconnus:\n - " +
+    ? "Evenements inconnus:\n - " +
       Array.from(new Set(stats.unknownEvents)).join("\n - ")
     : ""
 }
