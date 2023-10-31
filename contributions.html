@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Contributions</title>
+    <style type="text/css" media="screen">
+      #drop-area {
+        width: 500px;
+        height: 300px;
+        background-color: #cecece;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="drop-area"></div>
+    <input type="file" id="file-selector" />
+    <div><pre id="result"></pre></div>
+
+    <!-- https://raw.githubusercontent.com/adaltas/node-csv/79939aee56c467ab8f866eac3ebc591279b2f6f2/packages/csv/dist/iife/index.js -->
+    <script src="./3rd-party/node-csv.js" charset="utf-8"></script>
+    <script charset="utf-8">
+      const fileSelector = document.getElementById("file-selector");
+      fileSelector.addEventListener("change", (event) => {
+        const fileList = event.target.files;
+        readCsv(fileList[0]);
+      });
+
+      const dropArea = document.getElementById("drop-area");
+      dropArea.addEventListener("dragover", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        // Style the drag-and-drop as a "copy file" operation.
+        event.dataTransfer.dropEffect = "copy";
+      });
+
+      dropArea.addEventListener("drop", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const fileList = event.dataTransfer.files;
+        readCsv(fileList[0]);
+      });
+      function decodeBase64(base64) {
+        const text = atob(base64);
+        const length = text.length;
+        const bytes = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+          bytes[i] = text.charCodeAt(i);
+        }
+        const decoder = new TextDecoder(); // default is utf-8
+        return decoder.decode(bytes);
+      }
+      const toNumber = (x) => Number(x.replaceAll(/[^-\d]/g, ""));
+      const formatGoods = (goods) => {
+        return Object.keys(goods).map((name) => `${name} (${goods[name]})`);
+      };
+
+      /**
+       * Read CSV file from
+       */
+      function readCsv(file) {
+        // Check if the file is an image.
+        if (file.type && !file.type.startsWith("text/csv")) {
+          console.log("File is not a CSV file", file.type, file);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", (event) => {
+          const fileContent = event.target.result.replace(
+            "data:text/csv;base64,",
+            ""
+          );
+          csv.parse(
+            decodeBase64(fileContent),
+            { delimiter: ";", columns: true },
+            (err, res) => {
+              console.log(res);
+              // Group by member
+              // each member is an object:
+              // {
+              //   monuments: { algues: 12, ... },
+              //   donnation: { algues: 12, ... },
+              //   total: 123
+              // }
+              const byMember = {};
+              // Global guild statistics
+              // {
+              //   donnation: { algues: 12, ... },
+              //   monuments: { algues: 12, ... },
+              //   buildings: { algues: 12, ... },
+              //   unknownEvents: [],
+              //   total_contributions: 123,
+              //   total_spent: 110,
+              //   balance: {},
+              // }
+              const stats = {
+                monuments: {},
+                donnation: {},
+                buildings: {},
+                unknownEvents: [],
+                total_contributions: 0,
+                total_spent: 0,
+                balance: 0,
+              };
+              res.forEach(
+                ({ Message, Good, "Player name": playerName, Amount }) => {
+                  byMember[playerName] = byMember[playerName] || {
+                    monuments: {},
+                    donnation: {},
+                    total: 0,
+                  };
+
+                  stats.balance += toNumber(Amount);
+                  if (toNumber(Amount) < 0) {
+                    stats.total_spent -= toNumber(Amount);
+                  } else {
+                    byMember[playerName].total += toNumber(Amount);
+                    stats.total_contributions += toNumber(Amount);
+                  }
+
+                  if (Message === "Production de bâtiment") {
+                    byMember[playerName].monuments[Good] =
+                      (byMember[playerName].monuments[Good] || 0) +
+                      toNumber(Amount);
+                    stats.monuments[Good] =
+                      (stats.monuments[Good] || 0) + toNumber(Amount);
+                  } else if (Message === "Dons à la trésorerie de la guilde") {
+                    byMember[playerName].donnation[Good] =
+                      (byMember[playerName].donnation[Good] || 0) +
+                      toNumber(Amount);
+                    stats.donnation[Good] =
+                      (stats.donnation[Good] || 0) + toNumber(Amount);
+                  } else if (Message.startsWith("Champs de bataille")) {
+                    stats.buildings[Good] =
+                      (stats.buildings[Good] || 0) + toNumber(Amount);
+                  } else {
+                    stats.unknownEvents = [...stats.unknownEvents, Message];
+                  }
+                }
+              );
+              document.querySelector("#result").innerText = `
+Contribution des membres:
+${Object.keys(byMember)
+  .map(
+    (name) =>
+      `- ${name}: (${byMember[name].total})${
+        Object.keys(byMember[name].donnation).length
+          ? ", dons: " + formatGoods(byMember[name].donnation)
+          : ""
+      }\n`
+  )
+  .join("")}
+
+Batiments Cdg:
+- ${formatGoods(stats.buildings).join("\n- ")}
+
+Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
+
+${
+  stats.unknownEvents.length
+    ? "Evenemnts inconnus:\n - " +
+      Array.from(new Set(stats.unknownEvents)).join("\n - ")
+    : ""
+}
+                    `;
+              console.log(byMember);
+              console.log(stats);
+            }
+          );
+        });
+        reader.readAsDataURL(file);
+      }
+    </script>
+  </body>
+</html>
