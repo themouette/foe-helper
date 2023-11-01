@@ -179,7 +179,10 @@ ${Object.keys(byMember)
   .join("")}
 
 Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
-- ${formatGoods(stats.all).join("\n- ")}
+${Object.keys(stats.all)
+  .sort((nameA, nameB) => stats.all[nameA] - stats.all[nameB])
+  .map((name) => `- ${name} (${stats.all[name]})\n`)
+  .join("")}
 
 ${
   stats.unknownEvents.length
@@ -187,9 +190,7 @@ ${
       Array.from(new Set(stats.unknownEvents)).join("\n - ")
     : ""
 }
-                    `;
-              console.log(byMember);
-              console.log(stats);
+                          `;
             }
           );
         });
