@@ -60,15 +60,24 @@
        */
       function readCsv(file) {
         // Check if the file is an image.
-        if (file.type && !file.type.startsWith("text/csv")) {
+        if (
+          file.type &&
+          !(
+            (
+              file.type.startsWith("text/csv") || // standard
+              file.type.startsWith("application/vnd.ms-excel")
+            ) // Windows...
+          )
+        ) {
           console.log("File is not a CSV file", file.type, file);
           return;
         }
 
         const reader = new FileReader();
         reader.addEventListener("load", (event) => {
+          console.log(event.target.result);
           const fileContent = event.target.result.replace(
-            "data:text/csv;base64,",
+            /data:[^;]*;base64,/,
             ""
           );
           csv.parse(
