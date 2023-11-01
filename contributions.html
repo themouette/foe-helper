@@ -75,13 +75,17 @@
 
         const reader = new FileReader();
         reader.addEventListener("load", (event) => {
-          console.log(event.target.result);
-          const fileContent = event.target.result.replace(
+          let fileContent = event.target.result.replace(
             /data:[^;]*;base64,/,
             ""
           );
+          fileContent = decodeBase64(fileContent).replace(
+            // FR => EN
+            "ID Joueur;Nom du joueur;Ère;Ressource;Montant;Message;Date/Heure",
+            "Player ID;Player name;Era;Good;Amount;Message;Date/Time"
+          );
           csv.parse(
-            decodeBase64(fileContent),
+            fileContent,
             { delimiter: ";", columns: true },
             (err, res) => {
               console.log(res);
