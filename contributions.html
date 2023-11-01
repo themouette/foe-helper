@@ -97,6 +97,7 @@
               //   balance: {},
               // }
               const stats = {
+                all: {},
                 monuments: {},
                 donnation: {},
                 cdg: {},
@@ -116,6 +117,7 @@
                   };
 
                   stats.balance += toNumber(Amount);
+                  stats.all[Good] = (stats.all[Good] || 0) + toNumber(Amount);
                   if (toNumber(Amount) < 0) {
                     stats.total_spent -= toNumber(Amount);
                   } else {
@@ -170,7 +172,14 @@ Expédition de guilde:
 Continent Des Guildes:
 - ${formatGoods(stats.gcg).join("\n- ")}
 
+Dons:
+${Object.keys(byMember)
+  .filter((name) => Object.keys(byMember[name].donnation).length > 0)
+  .map((name) => `- ${name}: ${formatGoods(byMember[name].donnation)}\n`)
+  .join("")}
+
 Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
+- ${formatGoods(stats.all).join("\n- ")}
 
 ${
   stats.unknownEvents.length
