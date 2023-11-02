@@ -14,7 +14,7 @@
   </head>
   <body>
     <div id="drop-area"></div>
-    <input type="file" id="file-selector" />
+    <input type="file" id="file-selector" multiple />
     <div><pre id="result"></pre></div>
 
     <!-- https://raw.githubusercontent.com/adaltas/node-csv/79939aee56c467ab8f866eac3ebc591279b2f6f2/packages/csv/dist/iife/index.js -->
@@ -23,7 +23,7 @@
       const fileSelector = document.getElementById("file-selector");
       fileSelector.addEventListener("change", (event) => {
         const fileList = event.target.files;
-        readCsv(fileList[0]);
+        readCsvFiles(fileList);
       });
 
       const dropArea = document.getElementById("drop-area");
@@ -38,7 +38,7 @@
         event.stopPropagation();
         event.preventDefault();
         const fileList = event.dataTransfer.files;
-        readCsv(fileList[0]);
+        readCsvFiles(fileList);
       });
       function decodeBase64(base64) {
         const text = atob(base64);
@@ -55,11 +55,8 @@
         return Object.keys(goods).map((name) => `${name} (${goods[name]})`);
       };
 
-      /**
-       * Read CSV file from
-       */
-      function readCsv(file) {
-        // Check if the file is an image.
+      function readSingleFile(file) {
+        // Check if the file is CSV
         if (
           file.type &&
           !(
@@ -70,100 +67,115 @@
           )
         ) {
           console.log("File is not a CSV file", file.type, file);
-          return;
+          return "";
         }
 
-        const reader = new FileReader();
-        reader.addEventListener("load", (event) => {
-          let fileContent = event.target.result.replace(
-            /data:[^;]*;base64,/,
-            ""
-          );
-          fileContent = decodeBase64(fileContent).replace(
-            // FR => EN
-            "ID Joueur;Nom du joueur;Ère;Ressource;Montant;Message;Date/Heure",
-            "Player ID;Player name;Era;Good;Amount;Message;Date/Time"
-          );
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.addEventListener("load", (event) => {
+            let fileContent = event.target.result.replace(
+              /data:[^;]*;base64,/,
+              ""
+            );
+            fileContent = decodeBase64(fileContent).replace(
+              // FR => EN
+              "ID Joueur;Nom du joueur;Ère;Ressource;Montant;Message;Date/Heure",
+              "Player ID;Player name;Era;Good;Amount;Message;Date/Time"
+            );
+            resolve(fileContent);
+          });
+          reader.readAsDataURL(file);
+        });
+      }
+      function csvToJson(csvString) {
+        return new Promise((resolve, reject) => {
           csv.parse(
-            fileContent,
+            csvString,
             { delimiter: ";", columns: true },
-            (err, res) => {
-              console.log(res);
-              // Group by member
-              // each member is an object:
-              // {
-              //   monuments: { algues: 12, ... },
-              //   donnation: { algues: 12, ... },
-              //   total: 123
-              // }
-              const byMember = {};
-              // Global guild statistics
-              // {
-              //   donnation: { algues: 12, ... },
-              //   monuments: { algues: 12, ... },
-              //   cdg: { algues: 12, ... },
-              //   gcg: {},
-              //   eg: {},
-              //   unknownEvents: [],
-              //   total_contributions: 123,
-              //   total_spent: 110,
-              //   balance: {},
-              // }
-              const stats = {
-                all: {},
-                monuments: {},
-                donnation: {},
-                cdg: {},
-                eg: {},
-                gcg: {},
-                unknownEvents: [],
-                total_contributions: 0,
-                total_spent: 0,
-                balance: 0,
-              };
-              res.forEach(
-                ({ Message, Good, "Player name": playerName, Amount }) => {
-                  byMember[playerName] = byMember[playerName] || {
-                    monuments: {},
-                    donnation: {},
-                    total: 0,
-                  };
+            (err, result) => {
+              if (err) return reject(err);
+              resolve(result);
+            }
+          );
+        });
+      }
+      function compileStatsFromRows(rows) {
+        console.log(rows);
+        // Group by member
+        // each member is an object:
+        // {
+        //   monuments: { algues: 12, ... },
+        //   donnation: { algues: 12, ... },
+        //   total: 123
+        // }
+        const byMember = {};
+        // Global guild statistics
+        // {
+        //   donnation: { algues: 12, ... },
+        //   monuments: { algues: 12, ... },
+        //   cdg: { algues: 12, ... },
+        //   gcg: {},
+        //   eg: {},
+        //   unknownEvents: [],
+        //   total_contributions: 123,
+        //   total_spent: 110,
+        //   balance: {},
+        // }
+        const stats = {
+          all: {},
+          monuments: {},
+          donnation: {},
+          cdg: {},
+          eg: {},
+          gcg: {},
+          unknownEvents: [],
+          total_contributions: 0,
+          total_spent: 0,
+          balance: 0,
+        };
 
-                  stats.balance += toNumber(Amount);
-                  stats.all[Good] = (stats.all[Good] || 0) + toNumber(Amount);
-                  if (toNumber(Amount) < 0) {
-                    stats.total_spent -= toNumber(Amount);
-                  } else {
-                    byMember[playerName].total += toNumber(Amount);
-                    stats.total_contributions += toNumber(Amount);
-                  }
+        rows.forEach(({ Message, Good, "Player name": playerName, Amount }) => {
+          byMember[playerName] = byMember[playerName] || {
+            monuments: {},
+            donnation: {},
+            total: 0,
+          };
 
-                  if (Message === "Production de bâtiment") {
-                    byMember[playerName].monuments[Good] =
-                      (byMember[playerName].monuments[Good] || 0) +
-                      toNumber(Amount);
-                    stats.monuments[Good] =
-                      (stats.monuments[Good] || 0) + toNumber(Amount);
-                  } else if (Message === "Dons à la trésorerie de la guilde") {
-                    byMember[playerName].donnation[Good] =
-                      (byMember[playerName].donnation[Good] || 0) +
-                      toNumber(Amount);
-                    stats.donnation[Good] =
-                      (stats.donnation[Good] || 0) + toNumber(Amount);
-                  } else if (Message.startsWith("Champs de bataille")) {
-                    stats.cdg[Good] = (stats.cdg[Good] || 0) + toNumber(Amount);
-                  } else if (
-                    Message.startsWith("Déploiement de l'armée de siège")
-                  ) {
-                    stats.gcg[Good] = (stats.gcg[Good] || 0) + toNumber(Amount);
-                  } else if (Message.startsWith("Expédition de guilde")) {
-                    stats.eg[Good] = (stats.eg[Good] || 0) + toNumber(Amount);
-                  } else {
-                    stats.unknownEvents = [...stats.unknownEvents, Message];
-                  }
-                }
-              );
-              document.querySelector("#result").innerText = `
+          stats.balance += toNumber(Amount);
+          stats.all[Good] = (stats.all[Good] || 0) + toNumber(Amount);
+          if (toNumber(Amount) < 0) {
+            stats.total_spent -= toNumber(Amount);
+          } else {
+            byMember[playerName].total += toNumber(Amount);
+            stats.total_contributions += toNumber(Amount);
+          }
+
+          if (Message === "Production de bâtiment") {
+            byMember[playerName].monuments[Good] =
+              (byMember[playerName].monuments[Good] || 0) + toNumber(Amount);
+            stats.monuments[Good] =
+              (stats.monuments[Good] || 0) + toNumber(Amount);
+          } else if (Message === "Dons à la trésorerie de la guilde") {
+            byMember[playerName].donnation[Good] =
+              (byMember[playerName].donnation[Good] || 0) + toNumber(Amount);
+            stats.donnation[Good] =
+              (stats.donnation[Good] || 0) + toNumber(Amount);
+          } else if (Message.startsWith("Champs de bataille")) {
+            stats.cdg[Good] = (stats.cdg[Good] || 0) + toNumber(Amount);
+          } else if (Message.startsWith("Déploiement de l'armée de siège")) {
+            stats.gcg[Good] = (stats.gcg[Good] || 0) + toNumber(Amount);
+          } else if (Message.startsWith("Expédition de guilde")) {
+            stats.eg[Good] = (stats.eg[Good] || 0) + toNumber(Amount);
+          } else {
+            stats.unknownEvents = [...stats.unknownEvents, Message];
+          }
+        });
+
+        return { byMember, ...stats };
+      }
+
+      function formatStats({ byMember, ...stats }) {
+        return `
 Contribution des membres:
 ${Object.keys(byMember)
   .map(
@@ -204,10 +216,18 @@ ${
     : ""
 }
                           `;
-            }
-          );
-        });
-        reader.readAsDataURL(file);
+      }
+
+      function readCsvFiles(files) {
+        Promise.all(Array.from(files).map(readSingleFile))
+          .then((csvStrings) => Promise.all(csvStrings.map(csvToJson)))
+          .then((rows) => rows.flatMap((x) => x))
+          .then(compileStatsFromRows)
+          .then(formatStats)
+          .then(
+            (content) => (document.querySelector("#result").innerText = content)
+          )
+          .catch((error) => console.log(error));
       }
     </script>
   </body>
