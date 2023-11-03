@@ -20,6 +20,168 @@
     <!-- https://raw.githubusercontent.com/adaltas/node-csv/79939aee56c467ab8f866eac3ebc591279b2f6f2/packages/csv/dist/iife/index.js -->
     <script src="./3rd-party/node-csv.js" charset="utf-8"></script>
     <script charset="utf-8">
+      const ages = [
+        "Âge de Fer",
+        "Haut Moyen Âge",
+        "Moyen Âge Classique",
+        "Renaissance",
+        "Âge Colonial",
+        "Âge Industriel",
+        "Ère Progressiste",
+        "Ère Moderne",
+        "Ère Postmoderne",
+        "Ère Contemporaine",
+        "Ère de Demain",
+        "Ère du Futur",
+        "Futur Arctique",
+        "Futur Océanique",
+        "Futur Virtuel",
+        "Ère Spatiale - Mars",
+        "Ère Spatiale - Ceinture d'Astéroïdes",
+        "Ère Spatiale - Vénus",
+        "Ère Spatiale - Lune de Jupiter",
+        "Ère Spatiale - Titan",
+      ];
+      const mapResourceToEra = {
+        Tissu: "Âge de Fer",
+        "Bois d'ébène": "Âge de Fer",
+        Bijou: "Âge de Fer",
+        Fer: "Âge de Fer",
+        Calcaire: "Âge de Fer",
+        Cuivre: "Haut Moyen Âge",
+        Or: "Haut Moyen Âge",
+        Granite: "Haut Moyen Âge",
+        Miel: "Haut Moyen Âge",
+        Albâtre: "Haut Moyen Âge",
+        Brique: "Moyen Âge Classique",
+        Verre: "Moyen Âge Classique",
+        "Herbes séchées": "Moyen Âge Classique",
+        Corde: "Moyen Âge Classique",
+        Sel: "Moyen Âge Classique",
+        Basalte: "Renaissance",
+        Laiton: "Renaissance",
+        "Poudre à canon": "Renaissance",
+        Soie: "Renaissance",
+        "Poudre à talquer": "Renaissance",
+        Café: "Âge Colonial",
+        Papier: "Âge Colonial",
+        Porcelaine: "Âge Colonial",
+        Goudron: "Âge Colonial",
+        Fil: "Âge Colonial",
+        Coke: "Âge Industriel",
+        Engrais: "Âge Industriel",
+        Caoutchouc: "Âge Industriel",
+        Textiles: "Âge Industriel",
+        "Huile de baleine": "Âge Industriel",
+        Amiante: "Ère Progressiste",
+        Explosifs: "Ère Progressiste",
+        "Pièces détachées": "Ère Progressiste",
+        Essence: "Ère Progressiste",
+        "Fer-blanc": "Ère Progressiste",
+        "Plat cuisiné": "Ère Moderne",
+        "Béton armé": "Ère Moderne",
+        Arômes: "Ère Moderne",
+        "Produits de luxe": "Ère Moderne",
+        Emballage: "Ère Moderne",
+        "Donnée génétique": "Ère Postmoderne",
+        "Filtres industriels": "Ère Postmoderne",
+        "Ressources renouvelables": "Ère Postmoderne",
+        "Semi-conducteurs": "Ère Postmoderne",
+        Acier: "Ère Postmoderne",
+        "Donnée bionique": "Ère Contemporaine",
+        "Électro-aimants": "Ère Contemporaine",
+        Gaz: "Ère Contemporaine",
+        Plastique: "Ère Contemporaine",
+        Robots: "Ère Contemporaine",
+        "Recherche en nutrition": "Ère de Demain",
+        "Liant papier": "Ère de Demain",
+        Conservateurs: "Ère de Demain",
+        "Matériaux intelligents": "Ère de Demain",
+        "Béton translucide": "Ère de Demain",
+        Algue: "Ère du Futur",
+        "Donnée biogéochimique": "Ère du Futur",
+        Nanoparticules: "Ère du Futur",
+        "Eau purifiée": "Ère du Futur",
+        Supraconducteurs: "Ère du Futur",
+        "Donnée d'I.A.": "Futur Arctique",
+        Bioplastiques: "Futur Arctique",
+        Nanocâble: "Futur Arctique",
+        "Piles en papier": "Futur Arctique",
+        "Gaz transester": "Futur Arctique",
+        "Écailles artificielles": "Futur Océanique",
+        "Substance bioluminescente": "Futur Océanique",
+        Coraux: "Futur Océanique",
+        Perles: "Futur Océanique",
+        Plancton: "Futur Océanique",
+        "Crypto-monnaie": "Futur Virtuel",
+        "Cristaux de données": "Futur Virtuel",
+        "Riz doré": "Futur Virtuel",
+        Nanorobots: "Futur Virtuel",
+        "Soie de thé": "Futur Virtuel",
+        "Cultures biotechnologiques": "Ère Spatiale - Mars",
+        "Réacteurs de fusion": "Ère Spatiale - Mars",
+        "Huiles de graissage": "Ère Spatiale - Mars",
+        "Microbes martiens": "Ère Spatiale - Mars",
+        Superalliages: "Ère Spatiale - Mars",
+        Brome: "Ère Spatiale - Ceinture d'Astéroïdes",
+        "Fluide composé": "Ère Spatiale - Ceinture d'Astéroïdes",
+        Nickel: "Ère Spatiale - Ceinture d'Astéroïdes",
+        "Cristal de platine": "Ère Spatiale - Ceinture d'Astéroïdes",
+        "Matériau transformé": "Ère Spatiale - Ceinture d'Astéroïdes",
+        "Algue lumineuse": "Ère Spatiale - Vénus",
+        "En-cas d'herbe": "Ère Spatiale - Vénus",
+        "Suppléments de micropousse": "Ère Spatiale - Vénus",
+        "Protéines de soja": "Ère Spatiale - Vénus",
+        "Cristaux de sucre": "Ère Spatiale - Vénus",
+        "Données ADN avancées": "Ère Spatiale - Lune de Jupiter",
+        "Créatures biologiques": "Ère Spatiale - Lune de Jupiter",
+        "Porifère avancé": "Ère Spatiale - Lune de Jupiter",
+        "Algues rouges": "Ère Spatiale - Lune de Jupiter",
+        "Dossiers topologiques": "Ère Spatiale - Lune de Jupiter",
+        "Capsule de matière comprimée": "Ère Spatiale - Titan",
+        "Donnée expérimentale": "Ère Spatiale - Titan",
+        "Molécule isolée": "Ère Spatiale - Titan",
+        "Liant liquide": "Ère Spatiale - Titan",
+        "Hydrocarbure upcyclé": "Ère Spatiale - Titan",
+      };
+      const mapEraToShortName = {
+        "Âge de Fer": "AdF",
+        "Haut Moyen Âge": "HMA",
+        "Moyen Âge Classique": "MA Classique",
+        Renaissance: "Renaissance",
+        "Âge Colonial": "Colo",
+        "Âge Industriel": "Indus",
+        "Ère Progressiste": "Progressiste",
+        "Ère Moderne": "Moderne",
+        "Ère Postmoderne": "Postmoderne",
+        "Ère Contemporaine": "Contemporaine",
+        "Ère de Demain": "Demain",
+        "Ère du Futur": "Futur",
+        "Futur Arctique": "FA",
+        "Futur Océanique": "FO",
+        "Futur Virtuel": "FV",
+        "Ère Spatiale - Mars": "Mars",
+        "Ère Spatiale - Ceinture d'Astéroïdes": "Astéroïdes",
+        "Ère Spatiale - Vénus": "Vénus",
+        "Ère Spatiale - Lune de Jupiter": "Jupiter",
+        "Ère Spatiale - Titan": "Titan",
+      };
+
+      function groupResourceCountByEra(countsByResource) {
+        const countsByAge = {};
+        Object.keys(countsByResource).forEach((resourceName) => {
+          const age = mapResourceToEra[resourceName] || "Sans Age";
+          if (!mapResourceToEra[resourceName]) {
+            console.log(resourceName);
+          }
+          const shortAgeName = mapEraToShortName[age] || age;
+          countsByAge[shortAgeName] =
+            (countsByAge[shortAgeName] || 0) + countsByResource[resourceName];
+        });
+
+        return countsByAge;
+      }
+
       const fileSelector = document.getElementById("file-selector");
       fileSelector.addEventListener("change", (event) => {
         const fileList = event.target.files;
@@ -175,6 +337,7 @@
       }
 
       function formatStats({ byMember, ...stats }) {
+        const allStatsButByAge = groupResourceCountByEra(stats.all);
         return `
 Contribution des membres:
 ${Object.keys(byMember)
@@ -204,6 +367,14 @@ ${Object.keys(byMember)
   .join("")}
 
 Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
+
+Detail par age:
+${Object.keys(allStatsButByAge)
+  .sort((nameA, nameB) => allStatsButByAge[nameA] - allStatsButByAge[nameB])
+  .map((name) => `- ${name} (${allStatsButByAge[name]})\n`)
+  .join("")}
+
+Detail par resource:
 ${Object.keys(stats.all)
   .sort((nameA, nameB) => stats.all[nameA] - stats.all[nameB])
   .map((name) => `- ${name} (${stats.all[name]})\n`)
