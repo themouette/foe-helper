@@ -172,7 +172,7 @@
         Object.keys(countsByResource).forEach((resourceName) => {
           const age = mapResourceToEra[resourceName] || "Sans Age";
           if (!mapResourceToEra[resourceName]) {
-            console.log(resourceName);
+            console.log(`Resource sans age: ${resourceName}`);
           }
           const shortAgeName = mapEraToShortName[age] || age;
           countsByAge[shortAgeName] =
@@ -213,6 +213,7 @@
         return decoder.decode(bytes);
       }
       const toNumber = (x) => Number(x.replaceAll(/[^-\d]/g, ""));
+      const isNumeric = (x) => !isNaN(Number(x));
       const formatGoods = (goods) => {
         return Object.keys(goods).map((name) => `${name} (${goods[name]})`);
       };
@@ -244,12 +245,96 @@
               "ID Joueur;Nom du joueur;Ère;Ressource;Montant;Message;Date/Heure",
               "Player ID;Player name;Era;Good;Amount;Message;Date/Time"
             );
-            resolve(fileContent);
+            resolve({ file, fileContent });
           });
           reader.readAsDataURL(file);
         });
       }
-      function csvToJson(csvString) {
+
+      const daysOfWeek = [
+        "dimanche",
+        "lundi",
+        "mardi",
+        "mercredi",
+        "jeudi",
+        "vendredi",
+        "samedi",
+      ];
+      const filenameRegEx = /^\d{4}-\d{1,2}-\d{1,2}/;
+      /**
+       * Returns a timestamp guessed from file and cell content.
+       *
+       * Accepts formats like:
+       * - `hier à 11:48`
+       * - `aujourd'hui à 14:12`
+       * - `Mardi à 12:12`
+       * - `le 11/12/2013 à 15:23`
+       *
+       * Alway round timestamp to minute as there is no information about
+       * seconds in datasource.
+       */
+      function guessTimeFromString(cellContent, file) {
+        // Assume file is named `YYYY-MM-DD.*`
+        if (!filenameRegEx.test(file.name)) {
+          return cellContent;
+        }
+        const fileDateStr = file.name;
+        const [year, month, day] = fileDateStr
+          .slice(0, 10)
+          .split("-")
+          .map(toNumber);
+
+        const cellTxt = cellContent.toLowerCase();
+
+        if (cellTxt.startsWith("aujourd'hui à ")) {
+          const [hours, minutes] = cellTxt
+            .replace("aujourd'hui à ", "")
+            .split(":")
+            .map(toNumber);
+          return new Date(year, month - 1, day, hours, minutes, 0, 0).getTime();
+        } else if (cellTxt.startsWith("hier à ")) {
+          const [hours, minutes] = cellTxt
+            .replace("hier à ", "")
+            .split(":")
+            .map(toNumber);
+          const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+          d.setDate(day - 1);
+          return d.getTime();
+        } else if (cellTxt.startsWith("le ")) {
+          const dayDate = cellTxt
+            .replace("le ", "")
+            .split(" à ")[0]
+            .split("/")
+            .map(toNumber);
+          const dayTime = cellTxt.split(" à ")[1];
+          const [hours, minutes] = dayTime.split(":").map(toNumber);
+
+          return new Date(
+            dayDate[2],
+            dayDate[1] - 1,
+            dayDate[0],
+            hours,
+            minutes,
+            0,
+            0
+          ).getTime();
+        } else if (cellTxt.includes(" à ")) {
+          // Starts with day of week
+          const [dayOfWeek, dayTime] = cellTxt.split(" à ");
+          const fileDateDayOfWeek = new Date(year, month - 1, day, 12).getDay();
+          // Hacky way to get the number of days to remove to file date.
+          const rowDayModifier =
+            (daysOfWeek.indexOf(dayOfWeek) - fileDateDayOfWeek - 7) % 7;
+          const [hours, minutes] = dayTime.split(":").map(toNumber);
+          const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+          d.setDate(day + rowDayModifier);
+          return d.getTime();
+        } else {
+          return cellTxt;
+        }
+      }
+
+      function csvToJson({ file, fileContent: csvString }) {
         return new Promise((resolve, reject) => {
           csv.parse(
             csvString,
@@ -259,7 +344,14 @@
               resolve(result);
             }
           );
-        });
+        }).then(
+          /* change date/time column to a timestamp guessed from file created time */
+          (rows) =>
+            rows.map((row) => ({
+              ...row,
+              timestamp: guessTimeFromString(row["Date/Time"], file),
+            }))
+        );
       }
       function compileStatsFromRows(rows) {
         console.log(rows);
@@ -294,44 +386,54 @@
           total_contributions: 0,
           total_spent: 0,
           balance: 0,
+          from: new Date(rows[rows.length - 1].timestamp).toLocaleString(),
+          to: new Date(rows[0].timestamp).toLocaleString(),
         };
 
-        rows.forEach(({ Message, Good, "Player name": playerName, Amount }) => {
-          byMember[playerName] = byMember[playerName] || {
-            monuments: {},
-            donnation: {},
-            total: 0,
-          };
+        let filterStart; // = new Date(2023, 9, 30, 0, 0, 0);
+        let filterEnd; // = new Date(2023, 10, 6);
+        rows
+          .filter(
+            ({ timestamp }) =>
+              (!filterEnd || timestamp < filterEnd) &&
+              (!filterStart || timestamp > filterStart)
+          )
+          .forEach(({ Message, Good, "Player name": playerName, Amount }) => {
+            byMember[playerName] = byMember[playerName] || {
+              monuments: {},
+              donnation: {},
+              total: 0,
+            };
 
-          stats.balance += toNumber(Amount);
-          stats.all[Good] = (stats.all[Good] || 0) + toNumber(Amount);
-          if (toNumber(Amount) < 0) {
-            stats.total_spent -= toNumber(Amount);
-          } else {
-            byMember[playerName].total += toNumber(Amount);
-            stats.total_contributions += toNumber(Amount);
-          }
+            stats.balance += toNumber(Amount);
+            stats.all[Good] = (stats.all[Good] || 0) + toNumber(Amount);
+            if (toNumber(Amount) < 0) {
+              stats.total_spent -= toNumber(Amount);
+            } else {
+              byMember[playerName].total += toNumber(Amount);
+              stats.total_contributions += toNumber(Amount);
+            }
 
-          if (Message === "Production de bâtiment") {
-            byMember[playerName].monuments[Good] =
-              (byMember[playerName].monuments[Good] || 0) + toNumber(Amount);
-            stats.monuments[Good] =
-              (stats.monuments[Good] || 0) + toNumber(Amount);
-          } else if (Message === "Dons à la trésorerie de la guilde") {
-            byMember[playerName].donnation[Good] =
-              (byMember[playerName].donnation[Good] || 0) + toNumber(Amount);
-            stats.donnation[Good] =
-              (stats.donnation[Good] || 0) + toNumber(Amount);
-          } else if (Message.startsWith("Champs de bataille")) {
-            stats.cdg[Good] = (stats.cdg[Good] || 0) + toNumber(Amount);
-          } else if (Message.startsWith("Déploiement de l'armée de siège")) {
-            stats.gcg[Good] = (stats.gcg[Good] || 0) + toNumber(Amount);
-          } else if (Message.startsWith("Expédition de guilde")) {
-            stats.eg[Good] = (stats.eg[Good] || 0) + toNumber(Amount);
-          } else {
-            stats.unknownEvents = [...stats.unknownEvents, Message];
-          }
-        });
+            if (Message === "Production de bâtiment") {
+              byMember[playerName].monuments[Good] =
+                (byMember[playerName].monuments[Good] || 0) + toNumber(Amount);
+              stats.monuments[Good] =
+                (stats.monuments[Good] || 0) + toNumber(Amount);
+            } else if (Message === "Dons à la trésorerie de la guilde") {
+              byMember[playerName].donnation[Good] =
+                (byMember[playerName].donnation[Good] || 0) + toNumber(Amount);
+              stats.donnation[Good] =
+                (stats.donnation[Good] || 0) + toNumber(Amount);
+            } else if (Message.startsWith("Champs de bataille")) {
+              stats.cdg[Good] = (stats.cdg[Good] || 0) + toNumber(Amount);
+            } else if (Message.startsWith("Déploiement de l'armée de siège")) {
+              stats.gcg[Good] = (stats.gcg[Good] || 0) + toNumber(Amount);
+            } else if (Message.startsWith("Expédition de guilde")) {
+              stats.eg[Good] = (stats.eg[Good] || 0) + toNumber(Amount);
+            } else {
+              stats.unknownEvents = [...stats.unknownEvents, Message];
+            }
+          });
 
         return { byMember, ...stats };
       }
@@ -339,26 +441,7 @@
       function formatStats({ byMember, ...stats }) {
         const allStatsButByAge = groupResourceCountByEra(stats.all);
         return `
-Contribution des membres:
-${Object.keys(byMember)
-  .map(
-    (name) =>
-      `- ${name}: (${byMember[name].total})${
-        Object.keys(byMember[name].donnation).length
-          ? ", dons: " + formatGoods(byMember[name].donnation)
-          : ""
-      }\n`
-  )
-  .join("")}
-
-Batiments Champs de bataille:
-- ${formatGoods(stats.cdg).join("\n- ")}
-
-Expédition de guilde:
-- ${formatGoods(stats.eg).join("\n- ")}
-
-Continent Des Guildes:
-- ${formatGoods(stats.gcg).join("\n- ")}
+Campagne du ${stats.from} au ${stats.to}
 
 Dons:
 ${Object.keys(byMember)
@@ -373,6 +456,20 @@ ${Object.keys(allStatsButByAge)
   .sort((nameA, nameB) => allStatsButByAge[nameA] - allStatsButByAge[nameB])
   .map((name) => `- ${name} (${allStatsButByAge[name]})\n`)
   .join("")}
+
+Contribution des membres:
+${Object.keys(byMember)
+  .map((name) => `- ${name}: (${byMember[name].total})\n`)
+  .join("")}
+
+Batiments Champs de bataille:
+- ${formatGoods(stats.cdg).join("\n- ")}
+
+Expédition de guilde:
+- ${formatGoods(stats.eg).join("\n- ")}
+
+Continent Des Guildes:
+- ${formatGoods(stats.gcg).join("\n- ")}
 
 Detail par resource:
 ${Object.keys(stats.all)
@@ -389,10 +486,46 @@ ${
                           `;
       }
 
+      function combineAndDedupeFiles(filesAsJson) {
+        /* Most recent first */
+        const sortFunction = (a, b) => {
+          if (isNumeric(b.timestamp) && isNumeric(b.timestamp)) {
+            return b.timestamp - a.timestamp;
+          }
+          if (isNumeric(b.timestamp)) {
+            return -1;
+          }
+          if (isNumeric(a.timestamp)) {
+            return 1;
+          }
+          return b.timestamp.length - a.timestamp.length;
+        };
+        return filesAsJson
+          .map((rows) => rows.sort(sortFunction))
+          .sort((a, b) => sortFunction(a[0], b[0]))
+          .flatMap((rows, index, sortedFileList) => {
+            // given this is sorted, remove all rows with a timestamp after
+            // previous file last item.
+            if (!index) {
+              // this is the first, there were no prior element
+              return rows;
+            }
+            const lastTimestamp = sortedFileList[index - 1].findLast(
+              (item) => !isNaN(Number(item.timestamp))
+            ).timestamp;
+            // If timestamp was not parsed, do not filter anything
+            if (!isNumeric(lastTimestamp)) {
+              return rows;
+            }
+            return rows.filter(({ timestamp }) => timestamp > lastTimestamp);
+          })
+          .sort(sortFunction);
+      }
+
       function readCsvFiles(files) {
         Promise.all(Array.from(files).map(readSingleFile))
           .then((csvStrings) => Promise.all(csvStrings.map(csvToJson)))
-          .then((rows) => rows.flatMap((x) => x))
+          .then(combineAndDedupeFiles)
           .then(compileStatsFromRows)
           .then(formatStats)
           .then(
