@@ -5,17 +5,120 @@
     <meta name="viewport" content="width=device-width" />
     <title>Contributions</title>
     <style type="text/css" media="screen">
+      html,
+      body {
+        padding: 0;
+        margin: 0;
+      }
+      #main {
+        width: 1200px;
+        max-width: 100vw;
+        margin: auto;
+        overflow-x: hidden;
+      }
+      #main__wrapper {
+        margin: 0 30px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        overflow-x: hidden;
+      }
+      .header {
+        text-align: center;
+      }
+      .header__title {
+        margin: 0 0 10px 0;
+        padding: 0;
+      }
+      .header__subtitle {
+        margin: 0 0 10px 0;
+        padding: 0;
+      }
       #drop-area {
         width: 500px;
         height: 300px;
-        background-color: #cecece;
+        border: 1px dashed #cecece;
+        align-self: center;
+        /* Center content */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        /* Text style */
+        color: #808080;
+      }
+      #drop-area:hover {
+        background-color: #f7f7f7;
+        color: #c0c0c0;
+      }
+      .drop-area__input input {
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+      }
+      .drop-area__input label {
+        display: inline-block;
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        cursor: pointer;
+      }
+      #result {
+        white-space: pre-wrap; /* css-3 */
+        white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        word-wrap: break-word; /* Internet Explorer 5.5+ */
       }
     </style>
   </head>
   <body>
-    <div id="drop-area"></div>
-    <input type="file" id="file-selector" multiple />
-    <div><pre id="result"></pre></div>
+    <div id="main">
+      <div id="main__wrapper">
+        <div class="header">
+          <h1 class="header__title">Calcul des statistiques de trésorerie</h1>
+          <p class="header__subtitle">à partir des exports FOE-helper</p>
+        </div>
+        <div id="drop-area">
+          <div class="drop-area__label">
+            Déposer les fichiers d'export ici ou
+            <span class="drop-area__input">
+              <label for="file-selector">Parcourir</label
+              ><input type="file" id="file-selector" multiple />
+            </span>
+          </div>
+        </div>
+        <div class="toolbox">
+          <h3>Filtrer</h3>
+          <input
+            type="hidden"
+            id="timezone"
+            name="timezone"
+            value="Europe/Paris"
+          />
+          <p>
+            <label
+              >Afficher le détail des resources:
+              <input id="resource-detail" type="checkbox"
+            /></label>
+          </p>
+          <p>
+            <label
+              >date debut: <input id="start-date" type="datetime-local"
+            /></label>
+          </p>
+          <p>
+            <label
+              >date fin: <input id="end-date" type="datetime-local"
+            /></label>
+          </p>
+        </div>
+        <div><pre id="result"></pre></div>
+      </div>
+    </div>
 
     <!-- https://raw.githubusercontent.com/adaltas/node-csv/79939aee56c467ab8f866eac3ebc591279b2f6f2/packages/csv/dist/iife/index.js -->
     <script src="./3rd-party/node-csv.js" charset="utf-8"></script>
@@ -29,6 +132,29 @@
         // Date object used to filter results on given period
         filterEnd: undefined,
       };
+
+      function initToolbox() {
+        document
+          .querySelector("#resource-detail")
+          .addEventListener("change", () => {
+            refreshDisplay();
+          });
+        document
+          .querySelector("#start-date")
+          .addEventListener("change", (event) => {
+            globalState.filterStart = event.target.value
+              ? new Date(event.target.value)
+              : undefined;
+            refreshDisplay();
+          });
+        document.querySelector("#end-date").addEventListener("change", () => {
+          globalState.filterEnd = event.target.value
+            ? new Date(event.target.value)
+            : undefined;
+          refreshDisplay();
+        });
+      }
+      initToolbox();
 
       const ages = [
         "Âge de Fer",
@@ -401,8 +527,10 @@
           total_contributions: 0,
           total_spent: 0,
           balance: 0,
-          from: new Date(rows[rows.length - 1].timestamp).toLocaleString(),
-          to: new Date(rows[0].timestamp).toLocaleString(),
+          from: new Date(rows[rows.length - 1].timestamp).toLocaleString(
+            "fr-FR"
+          ),
+          to: new Date(rows[0].timestamp).toLocaleString("fr-FR"),
         };
 
         rows
@@ -452,22 +580,34 @@
       }
 
       function formatStats({ byMember, ...stats }) {
-        const allStatsButByAge = groupResourceCountByEra(stats.all);
+        const resourceOrAge = document.querySelector("#resource-detail").checked
+          ? (resourceMap) => resourceMap
+          : groupResourceCountByEra;
+
+        const allStats = resourceOrAge(stats.all);
+        const donnations = Object.keys(byMember).reduce(
+          (acc, memberName) => ({
+            ...acc,
+            [memberName]: resourceOrAge(byMember[memberName].donnation),
+          }),
+          {}
+        );
+
         return `
 Campagne du ${stats.from} au ${stats.to}
 
-Dons:
-${Object.keys(byMember)
-  .filter((name) => Object.keys(byMember[name].donnation).length > 0)
-  .map((name) => `- ${name}: ${formatGoods(byMember[name].donnation)}\n`)
-  .join("")}
-
 Bilan: ${stats.total_contributions} - ${stats.total_spent} = ${stats.balance}
 
-Detail par age:
-${Object.keys(allStatsButByAge)
-  .sort((nameA, nameB) => allStatsButByAge[nameA] - allStatsButByAge[nameB])
-  .map((name) => `- ${name} (${allStatsButByAge[name]})\n`)
+Detail des variations de resources:
+${Object.keys(allStats)
+  .sort((nameA, nameB) => allStats[nameA] - allStats[nameB])
+  .map((name) => `- ${name} (${allStats[name]})\n`)
+  .join("")}
+
+Dons:
+${Object.keys(donnations)
+  .filter((name) => Object.keys(donnations[name]).length > 0)
+  .map((name) => `- ${name}: ${formatGoods(donnations[name])}\n`)
   .join("")}
 
 Contribution des membres:
@@ -476,19 +616,13 @@ ${Object.keys(byMember)
   .join("")}
 
 Batiments Champs de bataille:
-- ${formatGoods(stats.cdg).join("\n- ")}
+- ${formatGoods(resourceOrAge(stats.cdg)).join("\n- ")}
 
 Expédition de guilde:
-- ${formatGoods(stats.eg).join("\n- ")}
+- ${formatGoods(resourceOrAge(stats.eg)).join("\n- ")}
 
 Continent Des Guildes:
-- ${formatGoods(stats.gcg).join("\n- ")}
-
-Detail par resource:
-${Object.keys(stats.all)
-  .sort((nameA, nameB) => stats.all[nameA] - stats.all[nameB])
-  .map((name) => `- ${name} (${stats.all[name]})\n`)
-  .join("")}
+- ${formatGoods(resourceOrAge(stats.gcg)).join("\n- ")}
 
 ${
   stats.unknownEvents.length
@@ -553,8 +687,46 @@ ${
           .then((rows) => {
             globalState.rows = rows;
           })
+          .then(updateToolbox)
           .then(refreshDisplay)
           .catch((error) => console.log(error));
+      }
+
+      function updateToolbox() {
+        const formatDateForInput = (o_date) =>
+          `${o_date.getFullYear().toString().padStart(2, "0")}-${(
+            o_date.getMonth() + 1
+          )
+            .toString()
+            .padStart(2, "0")}-${o_date
+            .getDate()
+            .toString()
+            .padStart(2, "0")} ${o_date
+            .getHours()
+            .toString()
+            .padStart(2, "0")}:${o_date
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}:${o_date
+            .getSeconds()
+            .toString()
+            .padStart(2, "0")}`;
+        const { rows } = globalState;
+        const from = formatDateForInput(
+          new Date(rows[rows.length - 1].timestamp)
+        );
+        const to = formatDateForInput(new Date(rows[0].timestamp));
+
+        document.querySelector("#start-date").setAttribute("value", from);
+        document.querySelector("#end-date").setAttribute("value", to);
+        /*
+      // This seems to work, but UI requires more polish.
+      // let's disable it.
+        document.querySelector("#start-date").setAttribute("min", from);
+        document.querySelector("#start-date").setAttribute("max", to);
+        document.querySelector("#end-date").setAttribute("min", from);
+        document.querySelector("#end-date").setAttribute("max", to);
+        */
       }
 
       function refreshDisplay() {
