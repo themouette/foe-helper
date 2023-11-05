@@ -514,14 +514,25 @@ ${
               // this is the first, there were no prior element
               return rows;
             }
+
+            // Attempt to find last timestamp of existing file
             const lastTimestamp = sortedFileList[index - 1].findLast(
               (item) => !isNaN(Number(item.timestamp))
-            ).timestamp;
+            )?.timestamp;
             // If timestamp was not parsed, do not filter anything
-            if (!isNumeric(lastTimestamp)) {
+            if (!lastTimestamp || !isNumeric(lastTimestamp)) {
               return rows;
             }
-            return rows.filter(({ timestamp }) => timestamp > lastTimestamp);
+
+            // There were a timestamp for last file,
+            // Exclude all rows happening after lastTimestamp
+            return rows.filter((row) => {
+              if (isNumeric(row.timestamp) && row.timestamp > lastTimestamp) {
+                console.log("exclude row in combineAndDedupeFiles");
+                return false;
+              }
+              return true;
+            });
           })
           .sort(sortFunction);
       }
