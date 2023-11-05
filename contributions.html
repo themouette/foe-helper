@@ -20,6 +20,16 @@
     <!-- https://raw.githubusercontent.com/adaltas/node-csv/79939aee56c467ab8f866eac3ebc591279b2f6f2/packages/csv/dist/iife/index.js -->
     <script src="./3rd-party/node-csv.js" charset="utf-8"></script>
     <script charset="utf-8">
+      /** A global object to store application state */
+      let globalState = {
+        // Rows read from CSV files
+        rows: [],
+        // Date object used to filter results on given period
+        filterStart: undefined,
+        // Date object used to filter results on given period
+        filterEnd: undefined,
+      };
+
       const ages = [
         "Âge de Fer",
         "Haut Moyen Âge",
@@ -357,7 +367,8 @@
             }))
         );
       }
-      function compileStatsFromRows(rows) {
+      function compileStatsFromRows(state) {
+        const { rows, filterStart, filterEnd } = state;
         console.log(rows);
         // Group by member
         // each member is an object:
@@ -394,8 +405,6 @@
           to: new Date(rows[0].timestamp).toLocaleString(),
         };
 
-        let filterStart; // = new Date(2023, 9, 30, 0, 0, 0);
-        let filterEnd; // = new Date(2023, 10, 6);
         rows
           .filter(
             ({ timestamp }) =>
@@ -541,6 +550,15 @@ ${
         Promise.all(Array.from(files).map(readSingleFile))
           .then((csvStrings) => Promise.all(csvStrings.map(csvToJson)))
           .then(combineAndDedupeFiles)
+          .then((rows) => {
+            globalState.rows = rows;
+          })
+          .then(refreshDisplay)
+          .catch((error) => console.log(error));
+      }
+
+      function refreshDisplay() {
+        Promise.resolve(globalState)
           .then(compileStatsFromRows)
           .then(formatStats)
           .then(
