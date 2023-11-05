@@ -241,7 +241,7 @@
         if (parts[0] > 2000) {
           return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
         }
-        return new Date(parts[2], parts[1] - 1, parts[1], 0, 0, 0, 0);
+        return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
       };
       const formatGoods = (goods) => {
         return Object.keys(goods).map((name) => `${name} (${goods[name]})`);
@@ -330,7 +330,7 @@
           const date = parseDate(dateStr);
           date.setHours(hours);
           date.setMinutes(minutes);
-          return fileDate.getTime();
+          return date.getTime();
         } else if (cellTxt.includes(" à ")) {
           // Starts with day of week
           const [dayOfWeek, dayTime] = cellTxt.split(" à ");
