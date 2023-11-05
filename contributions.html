@@ -214,6 +214,25 @@
       }
       const toNumber = (x) => Number(x.replaceAll(/[^-\d]/g, ""));
       const isNumeric = (x) => !isNaN(Number(x));
+      /**
+       * Parse time string in format `hh:mm`
+       * const [hour, minutes] = parseTime('11:45');
+       */
+      const parseTime = (str) => str.split(":").map(toNumber);
+      /**
+       * Parse date string in format `hh:mm`
+       * const date = parseDate('2023/10/22');
+       * const date = parseDate('22/9/2023');
+       * const date = parseDate('22-09-2023');
+       */
+      const parseDate = (str) => {
+        const parts = str.split(/-|\//g).map(toNumber);
+        // Determine the order, expect year to be over 2000
+        if (parts[0] > 2000) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+        return new Date(parts[2], parts[1] - 1, parts[1], 0, 0, 0, 0);
+      };
       const formatGoods = (goods) => {
         return Object.keys(goods).map((name) => `${name} (${goods[name]})`);
       };
@@ -278,57 +297,42 @@
         if (!filenameRegEx.test(file.name)) {
           return cellContent;
         }
-        const fileDateStr = file.name;
-        const [year, month, day] = fileDateStr
-          .slice(0, 10)
-          .split("-")
-          .map(toNumber);
+        const fileDate = parseDate(file.name.slice(0, 10));
 
         const cellTxt = cellContent.toLowerCase();
 
         if (cellTxt.startsWith("aujourd'hui à ")) {
-          const [hours, minutes] = cellTxt
-            .replace("aujourd'hui à ", "")
-            .split(":")
-            .map(toNumber);
-          return new Date(year, month - 1, day, hours, minutes, 0, 0).getTime();
+          const [hours, minutes] = parseTime(
+            cellTxt.replace("aujourd'hui à ", "")
+          );
+          fileDate.setHours(hours);
+          fileDate.setMinutes(minutes);
+          return fileDate.getTime();
         } else if (cellTxt.startsWith("hier à ")) {
-          const [hours, minutes] = cellTxt
-            .replace("hier à ", "")
-            .split(":")
-            .map(toNumber);
-          const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
-          d.setDate(day - 1);
-          return d.getTime();
+          const [hours, minutes] = parseTime(cellTxt.replace("hier à ", ""));
+          fileDate.setDate(fileDate.getDate() - 1);
+          fileDate.setHours(hours);
+          fileDate.setMinutes(minutes);
+          return fileDate.getTime();
         } else if (cellTxt.startsWith("le ")) {
-          const dayDate = cellTxt
-            .replace("le ", "")
-            .split(" à ")[0]
-            .split("/")
-            .map(toNumber);
-          const dayTime = cellTxt.split(" à ")[1];
-          const [hours, minutes] = dayTime.split(":").map(toNumber);
-
-          return new Date(
-            dayDate[2],
-            dayDate[1] - 1,
-            dayDate[0],
-            hours,
-            minutes,
-            0,
-            0
-          ).getTime();
+          const [dateStr, timeStr] = cellTxt.replace("le ", "").split(" à ");
+          const [hours, minutes] = parseTime(timeStr);
+          const date = parseDate(dateStr);
+          date.setHours(hours);
+          date.setMinutes(minutes);
+          return fileDate.getTime();
         } else if (cellTxt.includes(" à ")) {
           // Starts with day of week
           const [dayOfWeek, dayTime] = cellTxt.split(" à ");
-          const fileDateDayOfWeek = new Date(year, month - 1, day, 12).getDay();
+          const fileDateDayOfWeek = fileDate.getDay();
           // Hacky way to get the number of days to remove to file date.
           const rowDayModifier =
             (daysOfWeek.indexOf(dayOfWeek) - fileDateDayOfWeek - 7) % 7;
-          const [hours, minutes] = dayTime.split(":").map(toNumber);
-          const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
-          d.setDate(day + rowDayModifier);
-          return d.getTime();
+          const [hours, minutes] = parseTime(dayTime);
+          fileDate.setDate(fileDate.getDate() + rowDayModifier);
+          fileDate.setHours(hours);
+          fileDate.setMinutes(minutes);
+          return fileDate.getTime();
         } else {
           return cellTxt;
         }
