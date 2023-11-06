@@ -48,7 +48,7 @@
         /* Text style */
         color: #808080;
       }
-      #drop-area:hover {
+      .drop-area--is-hover {
         background-color: #f7f7f7;
         color: #c0c0c0;
       }
@@ -62,9 +62,24 @@
       }
       .drop-area__input label {
         display: inline-block;
-        text-decoration: underline;
-        text-decoration-style: dashed;
         cursor: pointer;
+        border-radius: 3px;
+        color: #fff;
+        background-color: #0098ff;
+        padding: 5px;
+      }
+      .drop-area__input label:hover {
+        background-color: #0089e6;
+      }
+      .toolbox-line {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-evenly;
+      }
+      .toolbox-line > * {
+        flex: 0 1 30%;
+        min-width: 300px;
       }
       #result {
         white-space: pre-wrap; /* css-3 */
@@ -92,47 +107,42 @@
           </div>
         </div>
         <div class="toolbox">
-          <h3>Filtrer</h3>
           <input
             type="hidden"
             id="timezone"
             name="timezone"
             value="Europe/Paris"
           />
-          <p>
-            <label
-              >Afficher le détail des resources:
-              <input id="resource-detail" type="checkbox"
-            /></label>
-          </p>
-          <p>
-            Tri
-            <label
-              ><input name="resource-sort" type="radio" value="count-asc" />par
-              valeur</label
-            >
-            <label
-              ><input name="resource-sort" type="radio" value="key-age" />par
-              age</label
-            >
-            <label
-              ><input
-                name="resource-sort"
-                type="radio"
-                value="none"
-              />aucun</label
-            >
-          </p>
-          <p>
+          <div class="toolbox-line">
+            <p>
+              <label
+                >Afficher le détail des resources:
+                <input id="resource-detail" type="checkbox"
+              /></label>
+            </p>
+            <p>
+              Tri
+              <label
+                ><input
+                  name="resource-sort"
+                  type="radio"
+                  value="count-asc"
+                />par valeur</label
+              >
+              <label
+                ><input name="resource-sort" type="radio" value="key-age" />par
+                age</label
+              >
+            </p>
+          </div>
+          <div class="toolbox-line">
             <label
               >date debut: <input id="start-date" type="datetime-local"
             /></label>
-          </p>
-          <p>
             <label
               >date fin: <input id="end-date" type="datetime-local"
             /></label>
-          </p>
+          </div>
         </div>
         <div><pre id="result"></pre></div>
       </div>

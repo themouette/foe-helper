@@ -202,6 +202,14 @@ function initFileSelection() {
     // Style the drag-and-drop as a "copy file" operation.
     event.dataTransfer.dropEffect = "copy";
   });
+  dropArea.addEventListener("dragenter", (event) => {
+    event.stopPropagation();
+    event.target.classList.add("drop-area--is-hover");
+  });
+  dropArea.addEventListener("dragleave", (event) => {
+    event.stopPropagation();
+    event.target.classList.remove("drop-area--is-hover");
+  });
 
   dropArea.addEventListener("drop", (event) => {
     event.stopPropagation();
@@ -598,7 +606,7 @@ ${formatCountMap(resourceStats, { sort })}
 Dons:
 ${formatByMemberCountMap(donnations, { sort })}
 
-batiments:
+Récoltes:
 ${formatByMemberCountMap(monuments, { sort })}
 
 Contribution totale par membre:
