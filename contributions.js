@@ -613,13 +613,13 @@ Contribution totale par membre:
 ${formatCountMap(totalByMember, { sort })}
 
 Batiments Champs de bataille:
-- ${formatGoods(resourceOrAge(stats.cdg), { sort }).join("\n- ")}
+${formatCountMap(resourceOrAge(stats.cdg), { sort })}
 
 Expédition de guilde:
-- ${formatGoods(resourceOrAge(stats.eg), { sort }).join("\n- ")}
+${formatCountMap(resourceOrAge(stats.eg), { sort })}
 
 Continent Des Guildes:
-- ${formatGoods(resourceOrAge(stats.gcg), { sort }).join("\n- ")}
+${formatCountMap(resourceOrAge(stats.gcg), { sort })}
 
 ${
   stats.unknownEvents.length
