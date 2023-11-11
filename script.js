@@ -297,6 +297,85 @@
       );
     }
   };
+  /**
+   * Parse time string in format `hh:mm`
+   * const [hour, minutes] = parseTime('11:45');
+   */
+  const parseTime = (str) => str.split(":").map(toNumber);
+  /**
+   * Parse date string in format `hh:mm`
+   * const date = parseDate('2023/10/22');
+   * const date = parseDate('22/9/2023');
+   * const date = parseDate('22-09-2023');
+   */
+  const parseDate = (str) => {
+    const parts = str.split(/-|\//g).map(toNumber);
+    // Determine the order, expect year to be over 2000
+    if (parts[0] > 2000) {
+      return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+    }
+    return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+  };
+  const daysOfWeek = [
+    "dimanche",
+    "lundi",
+    "mardi",
+    "mercredi",
+    "jeudi",
+    "vendredi",
+    "samedi",
+  ];
+  /**
+   * Returns a timestamp guessed from file and cell content.
+   *
+   * Accepts formats like:
+   * - `hier à 11:48`
+   * - `aujourd'hui à 14:12`
+   * - `Mardi à 12:12`
+   * - `le 11/12/2013 à 15:23`
+   *
+   * Alway round timestamp to minute as there is no information about
+   * seconds in datasource.
+   */
+  function guessTimeFromString(cellContent) {
+    const date = new Date();
+
+    const cellTxt = cellContent.toLowerCase();
+
+    if (cellTxt.startsWith("aujourd'hui à ")) {
+      const [hours, minutes] = parseTime(cellTxt.replace("aujourd'hui à ", ""));
+      date.setHours(hours);
+      date.setMinutes(minutes);
+      return date.getTime();
+    } else if (cellTxt.startsWith("hier à ")) {
+      const [hours, minutes] = parseTime(cellTxt.replace("hier à ", ""));
+      date.setDate(date.getDate() - 1);
+      date.setHours(hours);
+      date.setMinutes(minutes);
+      return date.getTime();
+    } else if (cellTxt.startsWith("le ")) {
+      const [dateStr, timeStr] = cellTxt.replace("le ", "").split(" à ");
+      const [hours, minutes] = parseTime(timeStr);
+      const date = parseDate(dateStr);
+      date.setHours(hours);
+      date.setMinutes(minutes);
+      return date.getTime();
+    } else if (cellTxt.includes(" à ")) {
+      // Starts with day of week
+      const [dayOfWeek, dayTime] = cellTxt.split(" à ");
+      const fileDateDayOfWeek = date.getDay();
+      // Hacky way to get the number of days to remove to file date.
+      const rowDayModifier =
+        (daysOfWeek.indexOf(dayOfWeek) - fileDateDayOfWeek - 7) % 7;
+      const [hours, minutes] = parseTime(dayTime);
+      date.setDate(date.getDate() + rowDayModifier);
+      date.setHours(hours);
+      date.setMinutes(minutes);
+      return date.getTime();
+    } else {
+      return cellTxt;
+    }
+  }
 
   /** get contribution data without duplicates */
   let oldCount;
@@ -343,6 +422,7 @@
             row.amount,
             row.action,
             row.createdAt,
+            guessTimeFromString(row.createdAt),
           ])
       );
       toSkip = 0;
@@ -359,10 +439,10 @@
     }
   };
   const exportAllRowsToCsv = () => {
-    const date = new Date();
+    const date = new Date(allRows[0][7]);
     let csvContent =
       "data:text/csv;charset=utf-8," +
-      "Player ID;Player name;Era;Good;Amount;Message;Date/Time\n" +
+      "Player ID;Player name;Era;Good;Amount;Message;Date/Time;timestamp\n" +
       allRows.map((e) => e.join(";")).join("\n");
     var encodedUri = encodeURI(csvContent);
     var link = document.createElement("a");
@@ -771,7 +851,7 @@
           const exportWindow = document.createElement("div");
           exportWindow.setAttribute("class", "groland-export-content");
           exportWindow.innerHTML = `
-<b>Export Groland</>
+<b>Export Groland</b>
 <div class="stats"></div>
 <button class="btn-default button-reset-groland">Reset</button>
 <button class="btn-default button-export-groland">Export</button>`;
