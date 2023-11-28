@@ -597,15 +597,19 @@
           const content = resources
             .map(({ name: age, resources: r }) => {
               const callForAge = r
-                .filter(({ count }) => count <= ALERT_LEVEL)
+                .filter(({ count }) => count <= EXPECTED_LEVEL)
                 .map(({ name, count }) =>
-                  count > CRITICAL_LEVEL
-                    ? ` - ⚠️  ${name} (${count}) manque ${
+                  count < CRITICAL_LEVEL
+                    ? ` - 🚨 🚨 ${name} (${count}) CRITIQUE manque ${
                         EXPECTED_LEVEL - count
-                      }`
-                    : ` - 🚑 ${name} (${count}) manque ${
+                      } 🚨 🚨 🚨`
+                    : count < ALERT_LEVEL
+                    ? ` - 🚑 ${name} (${count}) manque ${
                         EXPECTED_LEVEL - count
                       } ‼️ ‼️ `
+                    : ` - ⚠️  ${name} (${count}) manque ${
+                        EXPECTED_LEVEL - count
+                      }`
                 )
                 .join("\n");
               return callForAge.length ? `${age}:\n${callForAge}` : undefined;
