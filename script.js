@@ -526,10 +526,10 @@
       if (entry.action === "building_placed") {
         CdBJournalData.totalBuildings++;
         CdBJournalData.buildingCount[entry.buildingId] = CdBJournalData
-          .buildingCount[entry.buildingId] || { total: 0, timestamps: [] };
+          .buildingCount[entry.buildingId] || { total: 0, details: [] };
         CdBJournalData.buildingCount[entry.buildingId].total += 1;
-        CdBJournalData.buildingCount[entry.buildingId].timestamps.push(
-          timestamp
+        CdBJournalData.buildingCount[entry.buildingId].details.push(
+          `${entry.actors[0].name} à ${formatDate(timestamp)}`
         );
       } else {
         CdBJournalData.otherActions[entry.action] =
@@ -548,8 +548,7 @@ ${Object.entries(CdBJournalData.buildingCount)
 
 ${Object.entries(CdBJournalData.buildingCount)
   .map(
-    ([building, { timestamps }]) =>
-      `${building}:\n  - ${timestamps.map(formatDate).join("\n  - ")}`
+    ([building, { details }]) => `${building}:\n  - ${details.join("\n  - ")}`
   )
   .join("\n")}
 
