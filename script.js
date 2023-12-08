@@ -297,6 +297,50 @@
       );
     }
   };
+  const $$ = (selector, $node = document) =>
+    Array.from($node.querySelectorAll(selector));
+  const array_chunks = (array, chunk_size) =>
+    Array(Math.ceil(array.length / chunk_size))
+      .fill()
+      .map((_, index) => index * chunk_size)
+      .map((begin) => array.slice(begin, begin + chunk_size));
+  const toNumber = (x) => Number(x.replaceAll(/\D/g, ""));
+  const displayMessage = (message, closeDelay = 3000) => {
+    const div = document.createElement("div");
+    const closePopup = () => {
+      try {
+        if (!div || !div.parentElement) return;
+        div.parentElement.removeChild(div);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    Object.entries({
+      position: "absolute",
+      top: 0,
+      right: 0,
+      width: "500px",
+      background: "#fff",
+      color: "#000",
+      zIndex: 1000,
+      padding: "30px",
+      minHeight: "100px",
+    }).forEach(([key, value]) => (div.style[key] = value));
+    if (typeof message === "string") {
+      div.innerHTML = message;
+    } else {
+      // Assume this is a fragment
+      div.appendChild(message(closePopup));
+    }
+    document.body.appendChild(div);
+    setTimeout(() => closePopup(), closeDelay);
+  };
+  const copyContent = (text) => {
+    // Copy to clipboard
+    navigator.clipboard.writeText(text);
+    console.log(text);
+    displayMessage("Résultat copié dans le presse papier!");
+  };
   /**
    * Parse time string in format `hh:mm`
    * const [hour, minutes] = parseTime('11:45');
@@ -459,50 +503,64 @@
     document.body.removeChild(link);
   };
 
-  const $$ = (selector, $node = document) =>
-    Array.from($node.querySelectorAll(selector));
-  const array_chunks = (array, chunk_size) =>
-    Array(Math.ceil(array.length / chunk_size))
-      .fill()
-      .map((_, index) => index * chunk_size)
-      .map((begin) => array.slice(begin, begin + chunk_size));
-  const toNumber = (x) => Number(x.replaceAll(/\D/g, ""));
-  const displayMessage = (message, closeDelay = 3000) => {
-    const div = document.createElement("div");
-    const closePopup = () => {
-      try {
-        if (!div || !div.parentElement) return;
-        div.parentElement.removeChild(div);
-      } catch (error) {
-        console.log(error);
-      }
+  const formatDate = (t) => new Date(t).toLocaleString("fr-FR");
+  let CdBJournalData = {};
+  attachFoeProxyHandler("GuildBattlegroundService", "getActions", (data) => {
+    CdBJournalData = {
+      totalBuildings: 0,
+      buildingCount: {},
+      otherActions: {},
+      startTs: undefined,
+      endTs: undefined,
     };
-    Object.entries({
-      position: "absolute",
-      top: 0,
-      right: 0,
-      width: "500px",
-      background: "#fff",
-      color: "#000",
-      zIndex: 1000,
-      padding: "30px",
-      minHeight: "100px",
-    }).forEach(([key, value]) => (div.style[key] = value));
-    if (typeof message === "string") {
-      div.innerHTML = message;
-    } else {
-      // Assume this is a fragment
-      div.appendChild(message(closePopup));
-    }
-    document.body.appendChild(div);
-    setTimeout(() => closePopup(), closeDelay);
-  };
-  const copyContent = (text) => {
-    // Copy to clipboard
-    navigator.clipboard.writeText(text);
-    console.log(text);
-    displayMessage("Résultat copié dans le presse papier!");
-  };
+
+    data.responseData.forEach((entry) => {
+      const timestamp = guessTimeFromString(entry.date);
+      if (!CdBJournalData.startTs || timestamp < CdBJournalData.startTs) {
+        CdBJournalData.startTs = timestamp;
+      }
+      if (!CdBJournalData.endTs || timestamp > CdBJournalData.endTs) {
+        CdBJournalData.endTs = timestamp;
+      }
+
+      if (entry.action === "building_placed") {
+        CdBJournalData.totalBuildings++;
+        CdBJournalData.buildingCount[entry.buildingId] = CdBJournalData
+          .buildingCount[entry.buildingId] || { total: 0, timestamps: [] };
+        CdBJournalData.buildingCount[entry.buildingId].total += 1;
+        CdBJournalData.buildingCount[entry.buildingId].timestamps.push(
+          timestamp
+        );
+      } else {
+        CdBJournalData.otherActions[entry.action] =
+          (CdBJournalData.otherActions[entry.action] || 0) + 1;
+      }
+    });
+
+    // Now copy to clipboard
+    const text = `Du ${formatDate(CdBJournalData.startTs)} au ${formatDate(
+      CdBJournalData.endTs
+    )}
+Batiments (total: ${CdBJournalData.totalBuildings})
+${Object.entries(CdBJournalData.buildingCount)
+  .map(([building, { total }]) => `  - ${total} ${building}`)
+  .join("\n")}
+
+${Object.entries(CdBJournalData.buildingCount)
+  .map(
+    ([building, { timestamps }]) =>
+      `${building}:\n  - ${timestamps.map(formatDate).join("\n  - ")}`
+  )
+  .join("\n")}
+
+Autres evénements:
+${Object.entries(CdBJournalData.otherActions)
+  .map(([name, count]) => `  - ${count} ${name}`)
+  .join("\n")}
+`;
+    copyContent(text);
+    displayMessage("Journal de CdB copié dans le presse papier");
+  });
 
   const getContentFromSelectedTab = () => {
     try {
