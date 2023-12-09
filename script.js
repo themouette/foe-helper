@@ -503,11 +503,20 @@
     document.body.removeChild(link);
   };
 
-  const formatDate = (t) => new Date(t).toLocaleString("fr-FR");
+  const formatDateTime = (t) => new Date(t).toLocaleString("fr-FR");
+  const formatTime = (t) =>
+    new Date(t).toLocaleString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const formatDate = (t) =>
+    new Date(t).toLocaleString("fr-FR", {
+      month: "long",
+      day: "numeric",
+      dayOfWeek: "short",
+    });
   let CdBJournalData = {};
   attachFoeProxyHandler("GuildBattlegroundService", "getActions", (data) => {
     CdBJournalData = {
       totalBuildings: 0,
+      buildings: {},
       buildingCount: {},
       otherActions: {},
       startTs: undefined,
@@ -524,37 +533,60 @@
       }
 
       if (entry.action === "building_placed") {
+        const dateStr = formatDate(timestamp);
+        const building = entry.buildingId;
+
         CdBJournalData.totalBuildings++;
-        CdBJournalData.buildingCount[entry.buildingId] = CdBJournalData
-          .buildingCount[entry.buildingId] || { total: 0, details: [] };
-        CdBJournalData.buildingCount[entry.buildingId].total += 1;
-        CdBJournalData.buildingCount[entry.buildingId].details.push(
-          `${entry.actors[0].name} à ${formatDate(timestamp)}`
+
+        // By date and building type
+        CdBJournalData.buildings[dateStr] = CdBJournalData.buildings[
+          dateStr
+        ] || {
+          total: 0,
+          byType: {},
+          entries: [],
+        };
+        CdBJournalData.buildings[dateStr].entries.push(
+          `${formatTime(timestamp)} ${entry.actors[0].name}: ${building}`
         );
+        CdBJournalData.buildings[dateStr].total += 1;
+        CdBJournalData.buildings[dateStr].byType[building] =
+          CdBJournalData.buildings[dateStr].byType[building] || 0;
+        CdBJournalData.buildings[dateStr].byType[building] += 1;
       } else {
         CdBJournalData.otherActions[entry.action] =
           (CdBJournalData.otherActions[entry.action] || 0) + 1;
       }
     });
+    console.log(CdBJournalData);
 
     // Now copy to clipboard
-    const text = `Du ${formatDate(CdBJournalData.startTs)} au ${formatDate(
-      CdBJournalData.endTs
-    )}
+    const text = `Du ${formatDateTime(
+      CdBJournalData.startTs
+    )} au ${formatDateTime(CdBJournalData.endTs)}
 Batiments (total: ${CdBJournalData.totalBuildings})
-${Object.entries(CdBJournalData.buildingCount)
-  .map(([building, { total }]) => `  - ${total} ${building}`)
-  .join("\n")}
-
-${Object.entries(CdBJournalData.buildingCount)
+${Object.entries(CdBJournalData.buildings)
   .map(
-    ([building, { details }]) => `${building}:\n  - ${details.join("\n  - ")}`
+    ([date, { total, byType }]) =>
+      `${date}: (total: ${total})\n${Object.entries(byType)
+        .map(([building, count]) => `  - ${count} ${building}`)
+        .join("\n")}`
   )
   .join("\n")}
 
 Autres evénements:
 ${Object.entries(CdBJournalData.otherActions)
   .map(([name, count]) => `  - ${count} ${name}`)
+  .join("\n")}
+
+Détail des poses de batiment:
+${Object.entries(CdBJournalData.buildings)
+  .map(
+    ([date, { total, entries }]) =>
+      `${date}: (total: ${total})\n${entries
+        .map((entry) => `  - ${entry}`)
+        .join("\n")}`
+  )
   .join("\n")}
 `;
     copyContent(text);
