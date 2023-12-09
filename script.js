@@ -903,6 +903,53 @@ ${Object.entries(CdBJournalData.buildings)
           copyContent(content);
         }
 
+        const getGuildGreatBuildingsPerMembers = () => {
+          const greatBuildingRegExp = /\d x (.+) \((\d+)\)/;
+          let currentMemberName;
+          const buildingsByMember = {};
+          // Read table line by line
+          $$("tbody.gms-group > tr").map((tr) => {
+            if (tr.classList.contains("open")) {
+              // this is a member name
+              currentMemberName =
+                tr.querySelector("td[data-text]").dataset.text;
+              buildingsByMember[currentMemberName] =
+                buildingsByMember[currentMemberName] || [];
+            } else {
+              // This is the table for this member
+              // select all lines for building table
+              $$(
+                ".detail-item.buildings .detail-item.guildgoods:nth-of-type(1) tbody tr",
+                tr
+              ).forEach((row) => {
+                const desc = row.querySelector("td:nth-of-type(1)").textContent;
+                const matches = greatBuildingRegExp.exec(desc);
+                if (!matches) {
+                  // This is not a GB
+                  return null;
+                }
+
+                const [, name, level] = matches;
+                const contribution =
+                  row.querySelector("td:nth-of-type(3)").textContent;
+                buildingsByMember[currentMemberName].push(
+                  `${name} lvl ${level} (${contribution})`
+                );
+              });
+            }
+          });
+
+          content += `GB de guilde par membre:\n${Object.entries(
+            buildingsByMember
+          )
+            .map(
+              ([name, gbs]) =>
+                `${name}:\n${gbs.map((gb) => `  - ${gb}`).join("\n")}`
+            )
+            .join("\n")}`;
+          copyContent(content);
+        };
+
         displayMessage((closePopup) => {
           const message = `
         <div>
@@ -912,6 +959,7 @@ ${Object.entries(CdBJournalData.buildings)
         <div>
           <button id="per-member">Production totale par membre</button>
           <button id="per-age-member">Production par membre et par age</button>
+          <button id="gbs-per-member">Grands batiments de guilde par membre</button>
         </div>
       `;
           const fragment = document.createDocumentFragment();
@@ -930,6 +978,17 @@ ${Object.entries(CdBJournalData.buildings)
             .addEventListener("click", (e) => {
               try {
                 getResourceProductionPerAgeAndMember();
+                e.preventDefault();
+                closePopup();
+              } catch (error) {
+                console.log(error);
+              }
+            });
+          fragment
+            .querySelector("#gbs-per-member")
+            .addEventListener("click", (e) => {
+              try {
+                getGuildGreatBuildingsPerMembers();
                 e.preventDefault();
                 closePopup();
               } catch (error) {
