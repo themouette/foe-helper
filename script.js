@@ -972,6 +972,7 @@ ${Object.entries(CdBJournalData.buildings)
             const index = gbOrder.indexOf(gb);
             return index === -1 ? gbOrder.length : index;
           };
+          content += "Nom;GM;LVL;Ressource\n";
           content += Object.entries(buildingsByMember)
             .map(([member, gbs]) =>
               gbs
