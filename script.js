@@ -903,8 +903,8 @@ ${Object.entries(CdBJournalData.buildings)
           copyContent(content);
         }
 
+        const greatBuildingRegExp = /\d x (.+) \((\d+)\)/;
         const getGuildGreatBuildingsPerMembers = () => {
-          const greatBuildingRegExp = /\d x (.+) \((\d+)\)/;
           let currentMemberName;
           const buildingsByMember = {};
           // Read table line by line
@@ -932,21 +932,61 @@ ${Object.entries(CdBJournalData.buildings)
                 const [, name, level] = matches;
                 const contribution =
                   row.querySelector("td:nth-of-type(3)").textContent;
-                buildingsByMember[currentMemberName].push(
-                  `${name} lvl ${level} (${contribution})`
-                );
+                buildingsByMember[currentMemberName].push({
+                  name,
+                  level,
+                  contribution,
+                });
               });
             }
           });
-
+          return buildingsByMember;
+        };
+        const formatGuildGreatBuildingsPerMembers = () => {
+          const buildingsByMember = getGuildGreatBuildingsPerMembers();
           content += `GB de guilde par membre:\n${Object.entries(
             buildingsByMember
           )
             .map(
               ([name, gbs]) =>
-                `${name}:\n${gbs.map((gb) => `  - ${gb}`).join("\n")}`
+                `${name}:\n${gbs
+                  .map(
+                    ({ name, level, contribution }) =>
+                      `  - ${name} lvl ${level} (${contribution})`
+                  )
+                  .join("\n")}`
             )
             .join("\n")}`;
+          copyContent(content);
+        };
+        const formatGuildGreatBuildingsPerMembersCSV = () => {
+          const buildingsByMember = getGuildGreatBuildingsPerMembers();
+          const gbOrder = [
+            "L'arche",
+            "Observatoire",
+            "Noyau d'I.A.",
+            "Atomium",
+            "Saturne VI porte HYDRE",
+          ].map((x) => x.toLowerCase());
+          const getOrder = (gb) => {
+            const index = gbOrder.indexOf(gb);
+            return index === -1 ? gbOrder.length : index;
+          };
+          content += Object.entries(buildingsByMember)
+            .map(([member, gbs]) =>
+              gbs
+                .sort(
+                  (a, b) =>
+                    getOrder(a.name.toLowerCase()) -
+                    getOrder(b.name.toLowerCase())
+                )
+                .map(
+                  ({ name, level, contribution }) =>
+                    `${member};${name};${level};${toNumber(contribution)}`
+                )
+                .join("\n")
+            )
+            .join("\n");
           copyContent(content);
         };
 
@@ -960,6 +1000,7 @@ ${Object.entries(CdBJournalData.buildings)
           <button id="per-member">Production totale par membre</button>
           <button id="per-age-member">Production par membre et par age</button>
           <button id="gbs-per-member">Grands batiments de guilde par membre</button>
+          <button id="gbs-per-member-csv">Grands batiments de guilde CSV</button>
         </div>
       `;
           const fragment = document.createDocumentFragment();
@@ -988,7 +1029,18 @@ ${Object.entries(CdBJournalData.buildings)
             .querySelector("#gbs-per-member")
             .addEventListener("click", (e) => {
               try {
-                getGuildGreatBuildingsPerMembers();
+                formatGuildGreatBuildingsPerMembers();
+                e.preventDefault();
+                closePopup();
+              } catch (error) {
+                console.log(error);
+              }
+            });
+          fragment
+            .querySelector("#gbs-per-member-csv")
+            .addEventListener("click", (e) => {
+              try {
+                formatGuildGreatBuildingsPerMembersCSV();
                 e.preventDefault();
                 closePopup();
               } catch (error) {
