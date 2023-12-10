@@ -917,6 +917,10 @@ ${Object.entries(CdBJournalData.buildings)
                 buildingsByMember[currentMemberName] || [];
             } else {
               // This is the table for this member
+              const totalForMember = toNumber(
+                tr.querySelector(".guildgoods tr:last-child td:last-child")
+                  .textContent
+              );
               // select all lines for building table
               $$(
                 ".detail-item.buildings .detail-item.guildgoods:nth-of-type(1) tbody tr",
@@ -936,6 +940,8 @@ ${Object.entries(CdBJournalData.buildings)
                   name,
                   level,
                   contribution,
+                  total,
+                  totalForMember,
                 });
               });
             }
@@ -972,7 +978,7 @@ ${Object.entries(CdBJournalData.buildings)
             const index = gbOrder.indexOf(gb);
             return index === -1 ? gbOrder.length : index;
           };
-          content += "Nom;GM;LVL;Ressource\n";
+          content += "Nom;GM;LVL;Ressource;Total\n";
           content += Object.entries(buildingsByMember)
             .map(([member, gbs]) =>
               gbs
@@ -982,8 +988,10 @@ ${Object.entries(CdBJournalData.buildings)
                     getOrder(b.name.toLowerCase())
                 )
                 .map(
-                  ({ name, level, contribution }) =>
-                    `${member};${name};${level};${toNumber(contribution)}`
+                  ({ name, level, contribution, totalForMember }, gbIndex) =>
+                    `${member};${name};${level};${toNumber(contribution)};${
+                      gbIndex === 0 ? totalForMember : ""
+                    }`
                 )
                 .join("\n")
             )
