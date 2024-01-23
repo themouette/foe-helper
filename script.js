@@ -482,6 +482,7 @@
       console.log(error);
     }
   };
+  const padDate = (n) => String(n).padStart(2, "0");
   const exportAllRowsToCsv = () => {
     const date = new Date(allRows[0][7]);
     let csvContent =
@@ -493,9 +494,9 @@
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `${date.getFullYear()}-${
-        date.getMonth() + 1
-      }-${date.getDate()}_${date.getHours()}-${date.getMinutes()}_CDB.csv`
+      `${date.getFullYear()}-${padDate(date.getMonth() + 1)}-${padDate(
+        date.getDate()
+      )}_${padDate(date.getHours())}-${padDate(date.getMinutes())}_CDB.csv`
     );
     document.body.appendChild(link); // Required for FF
 
